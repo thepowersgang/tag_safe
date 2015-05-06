@@ -110,7 +110,60 @@ impl Pass
             .any(|a| a.name() == name)
     }
     
-    // Check that a method within this crate is safe with the provided tag
+    /// Recursively check that the provided function is either safe or unsafe.
+    // Used to avoid excessive annotating
+    fn recurse_fcn_body(&mut self, tcx: &ty::ctxt, node_id: ast::NodeId, name_id: usize, name: &str, unknown_assume: bool) -> bool
+    {
+        // Cache this method as unknown (to prevent infinite recursion)
+        self.flag_cache.entry(node_id)
+            .or_insert(Default::default())
+            .insert(name_id, SafetyType::Unknown)
+            ;
+        
+        // and apply a visitor to all 
+        match tcx.map.get(node_id)
+        {
+        syntax::ast_map::NodeItem(i) =>
+            match i.node {
+            ast::ItemFn(_, _, _, _, ref body) => {
+                // Enumerate this function's code, recursively checking for a call to an unsafe method
+                let mut is_safe = true;
+                {
+                    let mut v = Visitor {
+                        pass: self, tcx: tcx, name: name,
+                        unknown_assume: true,
+                        cb: |_| { is_safe = false; }
+                        };
+                    visit::walk_block(&mut v, body);
+                }
+                is_safe
+                },
+            _ => unknown_assume,
+            },
+        syntax::ast_map::NodeImplItem(i) =>
+            match i.node {
+            ast::MethodImplItem(_, ref body) => {
+                let mut is_safe = true;
+                {
+                    let mut v = Visitor {
+                        pass: self, tcx: tcx, name: name,
+                        unknown_assume: true,
+                        cb: |_| { is_safe = false; }
+                        };
+                    visit::walk_block(&mut v, body);
+                }
+                is_safe
+                },
+            _ => unknown_assume,
+            },
+        v @ _ => {
+            error!("Node ID {} points to non-item {:?}", node_id, v);
+            unknown_assume
+            }
+        }
+    }
+    
+    /// Check that a method within this crate is safe with the provided tag
     fn crate_method_is_safe(&mut self, tcx: &ty::ctxt, node_id: ast::NodeId, name: &str, unknown_assume: bool) -> bool
     {
         // Obtain tag name ID (avoids storing a string in the map)
@@ -145,52 +198,7 @@ impl Pass
                     false
                 }
                 else {
-                    // Cache this method as unknown (to prevent infinite recursion)
-                    self.flag_cache.entry(node_id)
-                        .or_insert(Default::default())
-                        .insert(name_id, SafetyType::Unknown)
-                        ;
-                    
-                    match tcx.map.get(node_id)
-                    {
-                    syntax::ast_map::NodeItem(i) =>
-                        match i.node {
-                        ast::ItemFn(_, _, _, _, ref body) => {
-                            // Enumerate this function's code, recursively checking for a call to an unsafe method
-                            let mut is_safe = true;
-                            {
-                                let mut v = Visitor {
-                                    pass: self, tcx: tcx, name: name,
-                                    unknown_assume: true,
-                                    cb: |_| { is_safe = false; }
-                                    };
-                                visit::walk_block(&mut v, body);
-                            }
-                            is_safe
-                            },
-                        _ => unknown_assume,
-                        },
-                    syntax::ast_map::NodeImplItem(i) =>
-                        match i.node {
-                        ast::MethodImplItem(_, ref body) => {
-                            let mut is_safe = true;
-                            {
-                                let mut v = Visitor {
-                                    pass: self, tcx: tcx, name: name,
-                                    unknown_assume: true,
-                                    cb: |_| { is_safe = false; }
-                                    };
-                                visit::walk_block(&mut v, body);
-                            }
-                            is_safe
-                            },
-                        _ => unknown_assume,
-                        },
-                    v @ _ => {
-                        error!("Node ID {} points to non-item {:?}", node_id, v);
-                        unknown_assume
-                        }
-                    }
+                    self.recurse_fcn_body(tcx, node_id, name_id, name, unknown_assume)
                 };
             // Save resultant value
             self.flag_cache.entry(node_id)
@@ -204,17 +212,31 @@ impl Pass
     /// Locate a #[tag_safe(<name>)] attribute on the passed item
     pub fn method_is_safe(&mut self, tcx: &ty::ctxt, id: ast::DefId, name: &str, unknown_assume: bool) -> bool
     {
-        self.lvl += 1;
         debug!("{}Checking method {:?} (A {})", Indent(self.lvl), id, unknown_assume);
+        self.lvl += 1;
         let rv = if id.krate == 0 {
                 self.crate_method_is_safe(tcx, id.node, name, unknown_assume)
             }
             else {
+                for a in ty::get_attrs(tcx, id).iter()
+                {
+                    if a.check_name("tag_safe") {
+                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name() == name) {
+                            return true;
+                        }
+                    }
+                    if a.check_name("tag_unsafe") {
+                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name() == name) {
+                            return false;
+                        }
+                    }
+                }
                 error!("TODO: Crate ID non-zero {:?} (assuming safe)", id);
+                // TODO: Check the crate import for an annotation
                 true
             };
-        debug!("{}Checking method {:?} = {}", Indent(self.lvl), id, rv);
         self.lvl -= 1;
+        debug!("{}Checking method {:?} = {}", Indent(self.lvl), id, rv);
         rv
     }
 }
@@ -271,4 +293,4 @@ pub fn plugin_registrar(reg: &mut Registry) {
     //reg.register_attribute("tag_unsafe", Whitelisted);
 }
 
-// vim: ts=4 expandtab sw=4 list listchars=eol:$,tab:>-
+// vim: ts=4 expandtab sw=4

@@ -7,3 +7,6 @@ authors = ["John Hodge <mutabah@mutabah.net>"]
 name = "tag_safe"
 path = "src/lib.rs"
 plugin = true
+
+[dev-dependencies.compiletest]
+git = "https://github.com/laumann/compiletest-rs.git"
