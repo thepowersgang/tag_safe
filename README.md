@@ -6,13 +6,17 @@ This is a linter designed originally for use with a kernel, where functions need
 within an IRQ handler, and handle the case where they may interrupt themselves).
 
 # Detailed #
-Within a function marked with a `#[tag_safe(type)]` annotation, the linter will check all called functions that are also marked as `#[tag_safe(type)]`.
+If a function is annotated with `#[tag_safe(ident)]` (where `ident` can be anything, and defines the type of safety) this linter will check that call functions called by that function either have that same annotation, or don't call any function with the reverse `#[tag_unsafe(ident)]` annotation.
+
+By default this lint is a warning, in functions that internally ensure safety it can be turned off with `#[allow(not_tagged_safe)]`, and for functions that require safety it can be made an error with `#[deny(not_tagged_safe)]`
 
 # Usage #
 Below is an example of using this flag to prevent accidentally using an IRQ-unsafe method in an IRQ handler.
 (Assume the lock used by `acquire_irq_spinlock` is different to the one acquired by `acquire_non_irq_spinlock`)
 
 ```rust
+#![feature(custom_attribute,plugin)]
+#![plugin(tag_safe)]
 /// RAII primitive spinlock
 struct Spinlock;
 /// Handle to said spinlock
