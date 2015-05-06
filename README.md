@@ -44,7 +44,7 @@ fn acquire_irq_spinlock(l: &'static IrqSpinlock) -> (IRQLock,HeldSpinlock)
 	// Prevent IRQs from firing
 	let irql = hold_irqs();
 	// and acquire the spinlock
-	(irql, acquire_non_irq_spinlock(l.0))
+	(irql, acquire_non_irq_spinlock(&l.0))
 }
 
 // Stop IRQs from firing until the returned value is dropped
@@ -58,6 +58,6 @@ fn hold_irqs() -> IRQLock
 #[tag_unsafe(irq)]
 fn acquire_non_irq_spinlock(l: &'static Spinlock) -> HeldSpinlock
 {
-	HeldSpinlock
+	HeldSpinlock(l)
 }
 ```
