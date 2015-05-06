@@ -1,0 +1,9 @@
+[package]
+name = "tag_safe"
+version = "0.0.1"
+authors = ["John Hodge <mutabah@mutabah.net>"]
+
+[lib]
+name = "tag_safe"
+path = "src/lib.rs"
+plugin = true
