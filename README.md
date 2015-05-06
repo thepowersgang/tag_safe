@@ -1,3 +1,7 @@
+# tag_safe
+
+[![Build Status](https://travis-ci.org/thepowersgang/tag_safe.svg)(https://travis-ci.org/thepowersgang/tag_safe)]
+
 This is a linter designed originally for use with a kernel, where functions need to be marked as "IRQ safe" (meaning they are safe to call
 within an IRQ handler, and handle the case where they may interrupt themselves).
 
@@ -54,7 +58,8 @@ fn hold_irqs() -> IRQLock
 	IRQLock
 }
 
-// Not safe to call in an IRQ without protection (as that can lead to a uniprocessor deadlock)
+// Not safe to call in an IRQ without protection (as that can lead to a
+// uniprocessor deadlock)
 #[tag_unsafe(irq)]
 fn acquire_non_irq_spinlock(l: &'static Spinlock) -> HeldSpinlock
 {
