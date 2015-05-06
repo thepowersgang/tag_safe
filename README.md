@@ -1,6 +1,6 @@
 # tag_safe
 
-[![Build Status](https://travis-ci.org/thepowersgang/tag_safe.svg)(https://travis-ci.org/thepowersgang/tag_safe)]
+[![Build Status](https://travis-ci.org/thepowersgang/tag_safe.svg)](https://travis-ci.org/thepowersgang/tag_safe)
 
 This is a linter designed originally for use with a kernel, where functions need to be marked as "IRQ safe" (meaning they are safe to call
 within an IRQ handler, and handle the case where they may interrupt themselves).
