@@ -231,7 +231,7 @@ impl Pass
                         }
                     }
                 }
-                error!("TODO: Crate ID non-zero {:?} (assuming safe)", id);
+                warn!("TODO: Crate ID non-zero {:?} (assuming safe)", id);
                 // TODO: Check the crate import for an annotation
                 true
             };
