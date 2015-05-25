@@ -125,7 +125,7 @@ impl Pass
         {
         syntax::ast_map::NodeItem(i) =>
             match i.node {
-            ast::ItemFn(_, _, _, _, ref body) => {
+            ast::ItemFn(_, _, _, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
                 let mut is_safe = true;
                 {
@@ -265,7 +265,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
             },
         
         // Method call expressions - get the relevant method
-        ast::ExprMethodCall(ref id, ref _tys, ref exprs) =>
+        ast::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
             {
                 let mm = self.tcx.method_map.borrow();
                 match mm.get( &ty::MethodCall::expr(ex.id) ).unwrap().origin
@@ -288,9 +288,11 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
+    use syntax::feature_gate::AttributeType;
     reg.register_lint_pass(Box::new(Pass::default()) as LintPassObject);
-    //reg.register_attribute("tag_safe", Whitelisted);
-    //reg.register_attribute("tag_unsafe", Whitelisted);
+    
+    reg.register_attribute(String::from("tag_safe"),   AttributeType::Whitelisted);
+    reg.register_attribute(String::from("tag_unsafe"), AttributeType::Whitelisted);
 }
 
 // vim: ts=4 expandtab sw=4
