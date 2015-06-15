@@ -123,7 +123,7 @@ impl Pass
         // and apply a visitor to all 
         match tcx.map.get(node_id)
         {
-        syntax::ast_map::NodeItem(i) =>
+        rustc::ast_map::NodeItem(i) =>
             match i.node {
             ast::ItemFn(_, _, _, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
@@ -140,7 +140,7 @@ impl Pass
                 },
             _ => unknown_assume,
             },
-        syntax::ast_map::NodeImplItem(i) =>
+        rustc::ast_map::NodeImplItem(i) =>
             match i.node {
             ast::MethodImplItem(_, ref body) => {
                 let mut is_safe = true;
