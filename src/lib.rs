@@ -218,7 +218,7 @@ impl Pass
                 self.crate_method_is_safe(tcx, id.node, name, unknown_assume)
             }
             else {
-                for a in ty::get_attrs(tcx, id).iter()
+                for a in tcx.get_attrs(id).iter()
                 {
                     if a.check_name("tag_safe") {
                         if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name() == name) {
@@ -253,7 +253,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
             match fcn.node
             {
             ast::ExprPath(ref _qs, ref _p) => {
-                    if let def::DefFn(did, _) = ty::resolve_expr(self.tcx, &fcn) {
+                    if let def::DefFn(did, _) = self.tcx.resolve_expr(&fcn) {
                         // Check for a safety tag
                         if !self.pass.method_is_safe(self.tcx, did, self.name, self.unknown_assume)
                         {
