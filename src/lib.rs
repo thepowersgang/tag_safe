@@ -267,7 +267,8 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
         // Method call expressions - get the relevant method
         ast::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
             {
-                let mm = self.tcx.method_map.borrow();
+                let tables = self.tcx.tables.borrow();
+                let mm = &tables.method_map;
                 match mm.get( &ty::MethodCall::expr(ex.id) ).unwrap().origin
                 {
                 ty::MethodStatic(id) => {
