@@ -269,16 +269,16 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
             {
                 let tables = self.tcx.tables.borrow();
                 let mm = &tables.method_map;
-                match mm.get( &ty::MethodCall::expr(ex.id) ).unwrap().origin
-                {
-                ty::MethodStatic(id) => {
+                
+                let callee = mm.get( &ty::MethodCall::expr(ex.id) ).unwrap();
+                let id = callee.def_id;
+                
+                //if let ty::MethodStatic(id) = callee.origin {
                         // Check for a safety tag
                         if !self.pass.method_is_safe(self.tcx, id, self.name, self.unknown_assume) {
                             (self.cb)(&ex.span);
                         }
-                    },
-                _ => {},
-                }
+                //}
             },
         
         // Ignore any other type of node
