@@ -156,6 +156,16 @@ impl Pass
                 },
             _ => unknown_assume,
             },
+        rustc::ast_map::NodeForeignItem(i) =>
+            if Self::check_for_marker(tcx, i.id, "tag_safe", name) {
+                true
+            }
+            else if Self::check_for_marker(tcx, i.id, "tag_unsafe", name) {
+                false
+            }
+            else {
+                unknown_assume
+            },
         v @ _ => {
             error!("Node ID {} points to non-item {:?}", node_id, v);
             unknown_assume
