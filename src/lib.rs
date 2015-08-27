@@ -20,6 +20,7 @@ extern crate syntax;
 extern crate rustc;
 
 use syntax::ast;
+use rustc::middle::def_id::DefId;
 use syntax::visit;
 use syntax::codemap::Span;
 use rustc::lint::LintPassObject;
@@ -220,7 +221,7 @@ impl Pass
     }
     
     /// Locate a #[tag_safe(<name>)] attribute on the passed item
-    pub fn method_is_safe(&mut self, tcx: &ty::ctxt, id: ast::DefId, name: &str, unknown_assume: bool) -> bool
+    pub fn method_is_safe(&mut self, tcx: &ty::ctxt, id: DefId, name: &str, unknown_assume: bool) -> bool
     {
         debug!("{}Checking method {:?} (A {})", Indent(self.lvl), id, unknown_assume);
         self.lvl += 1;
