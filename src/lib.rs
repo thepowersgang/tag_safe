@@ -19,15 +19,18 @@ extern crate syntax;
 #[macro_use]
 extern crate rustc;
 
+extern crate rustc_front;
+
 use syntax::ast;
 use rustc::middle::def_id::DefId;
-use syntax::visit;
+use rustc_front::visit;
 use syntax::codemap::Span;
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;
 use rustc::lint::{Context, LintPass, LintArray};
-use syntax::attr::AttrMetaMethods;
 use rustc::middle::{def,ty};
+use rustc_front::hir;
+use rustc_front::attr::AttrMetaMethods;
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
 
@@ -75,7 +78,7 @@ impl LintPass for Pass {
         lint_array!(NOT_TAGGED_SAFE)
     }
 
-    fn check_fn(&mut self, cx: &Context, _kind: visit::FnKind, _decl: &ast::FnDecl, body: &ast::Block, _: Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &Context, _kind: ::rustc_front::visit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
         for ty in attrs.iter()
             .filter(|a| a.check_name("tag_safe"))
@@ -124,9 +127,9 @@ impl Pass
         // and apply a visitor to all 
         match tcx.map.get(node_id)
         {
-        rustc::ast_map::NodeItem(i) =>
+        rustc::front::map::NodeItem(i) =>
             match i.node {
-            ast::ItemFn(_, _, _, _, _, ref body) => {
+            hir::ItemFn(_, _, _, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
                 let mut is_safe = true;
                 {
@@ -141,9 +144,9 @@ impl Pass
                 },
             _ => unknown_assume,
             },
-        rustc::ast_map::NodeImplItem(i) =>
+        rustc::front::map::NodeImplItem(i) =>
             match i.node {
-            ast::MethodImplItem(_, ref body) => {
+            hir::MethodImplItem(_, ref body) => {
                 let mut is_safe = true;
                 {
                     let mut v = Visitor {
@@ -157,7 +160,7 @@ impl Pass
                 },
             _ => unknown_assume,
             },
-        rustc::ast_map::NodeForeignItem(i) =>
+        rustc::front::map::NodeForeignItem(i) =>
             if Self::check_for_marker(tcx, i.id, "tag_safe", name) {
                 true
             }
@@ -256,14 +259,14 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
 {
     // Locate function/method calls in a code block
     // - uses visit_expr_post because it doesn't _need_ to do anything
-    fn visit_expr_post(&mut self, ex: &'a ast::Expr) {
+    fn visit_expr_post(&mut self, ex: &'a hir::Expr) {
         match ex.node
         {
         // Call expressions - check that it's a path call
-        ast::ExprCall(ref fcn, _) =>
+        hir::ExprCall(ref fcn, _) =>
             match fcn.node
             {
-            ast::ExprPath(ref _qs, ref _p) => {
+            hir::ExprPath(ref _qs, ref _p) => {
                     if let def::DefFn(did, _) = self.tcx.resolve_expr(&fcn) {
                         // Check for a safety tag
                         if !self.pass.method_is_safe(self.tcx, did, self.name, self.unknown_assume)
@@ -276,7 +279,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
             },
         
         // Method call expressions - get the relevant method
-        ast::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
+        hir::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
             {
                 let tables = self.tcx.tables.borrow();
                 let mm = &tables.method_map;
