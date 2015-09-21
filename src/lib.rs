@@ -25,12 +25,11 @@ use syntax::ast;
 use rustc::middle::def_id::DefId;
 use rustc_front::visit;
 use syntax::codemap::Span;
-use rustc::lint::LintPassObject;
+use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc::plugin::Registry;
-use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::{def,ty};
 use rustc_front::hir;
-use rustc_front::attr::AttrMetaMethods;
+use syntax::attr::AttrMetaMethods;
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
 
@@ -77,8 +76,10 @@ impl LintPass for Pass {
     fn get_lints(&self) -> LintArray {
         lint_array!(NOT_TAGGED_SAFE)
     }
+}
 
-    fn check_fn(&mut self, cx: &Context, _kind: ::rustc_front::visit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
+impl LateLintPass for Pass {
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc_front::visit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
         for ty in attrs.iter()
             .filter(|a| a.check_name("tag_safe"))
@@ -304,7 +305,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     use syntax::feature_gate::AttributeType;
-    reg.register_lint_pass(Box::new(Pass::default()) as LintPassObject);
+    reg.register_late_lint_pass( Box::new(Pass::default()) );
     
     reg.register_attribute(String::from("tag_safe"),   AttributeType::Whitelisted);
     reg.register_attribute(String::from("tag_unsafe"), AttributeType::Whitelisted);
