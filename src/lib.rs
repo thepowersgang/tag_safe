@@ -230,7 +230,7 @@ impl Pass
         debug!("{}Checking method {:?} (A {})", Indent(self.lvl), id, unknown_assume);
         self.lvl += 1;
         let rv = if id.krate == 0 {
-                self.crate_method_is_safe(tcx, id.node, name, unknown_assume)
+                self.crate_method_is_safe(tcx, tcx.map.as_local_node_id(id).unwrap(), name, unknown_assume)
             }
             else {
                 for a in tcx.get_attrs(id).iter()
