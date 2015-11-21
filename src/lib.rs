@@ -23,7 +23,7 @@ extern crate rustc_front;
 
 use syntax::ast;
 use rustc::middle::def_id::DefId;
-use rustc_front::visit;
+use rustc_front::intravisit;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc::plugin::Registry;
@@ -79,7 +79,7 @@ impl LintPass for Pass {
 }
 
 impl LateLintPass for Pass {
-    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc_front::visit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc_front::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
         for ty in attrs.iter()
             .filter(|a| a.check_name("tag_safe"))
@@ -98,7 +98,7 @@ impl LateLintPass for Pass {
                         },
                     };
             debug!("Method {:?} is marked safe '{}'", id, ty.name());
-            visit::walk_block(&mut v, body);
+            intravisit::walk_block(&mut v, body);
         }
     }
 }
@@ -139,7 +139,7 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    visit::walk_block(&mut v, body);
+                    intravisit::walk_block(&mut v, body);
                 }
                 is_safe
                 },
@@ -147,7 +147,7 @@ impl Pass
             },
         rustc::front::map::NodeImplItem(i) =>
             match i.node {
-            hir::MethodImplItem(_, ref body) => {
+            hir::ImplItemKind::Method(_, ref body) => {
                 let mut is_safe = true;
                 {
                     let mut v = Visitor {
@@ -155,7 +155,7 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    visit::walk_block(&mut v, body);
+                    intravisit::walk_block(&mut v, body);
                 }
                 is_safe
                 },
@@ -256,7 +256,7 @@ impl Pass
     }
 }
 
-impl<'a, 'tcx: 'a, F: FnMut(&Span)> visit::Visitor<'a> for Visitor<'a,'tcx, F>
+impl<'a, 'tcx: 'a, F: FnMut(&Span)> intravisit::Visitor<'a> for Visitor<'a,'tcx, F>
 {
     // Locate function/method calls in a code block
     // - uses visit_expr_post because it doesn't _need_ to do anything
