@@ -20,13 +20,15 @@ extern crate syntax;
 extern crate rustc;
 
 extern crate rustc_front;
+#[macro_use]
+extern crate rustc_plugin;
 
 use syntax::ast;
 use rustc::middle::def_id::DefId;
 use rustc_front::intravisit;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
-use rustc::plugin::Registry;
+use rustc_plugin::Registry;
 use rustc::middle::{def,ty};
 use rustc_front::hir;
 use syntax::attr::AttrMetaMethods;
