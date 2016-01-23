@@ -1,7 +1,7 @@
 [package]
 name = "tag_safe"
 description = "A rustc lint plugin to allow tagging of methods with arbitary safety flags"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["John Hodge <mutabah@mutabah.net>"]
 repository = "http://github.com/thepowersgang/tag_safe/"
 keywords = ["plugin", "lint"]
@@ -13,4 +13,4 @@ path = "src/lib.rs"
 plugin = true
 
 [dev-dependencies]
-compiletest_rs = "*"
+compiletest_rs = "0.0"
