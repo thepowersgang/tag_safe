@@ -30,6 +30,7 @@ use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc_plugin::Registry;
 use rustc::middle::{def,ty};
+use rustc::middle::ty::TyCtxt;
 use rustc_front::hir;
 use syntax::attr::AttrMetaMethods;
 
@@ -57,7 +58,7 @@ struct Pass
 struct Visitor<'a, 'tcx: 'a, F: FnMut(&Span) + 'a>
 {
     pass: &'a mut Pass,
-    tcx: &'a ty::ctxt<'tcx>,
+    tcx: &'a TyCtxt<'tcx>,
     name: &'a str,
     unknown_assume: bool,
     cb: F,
@@ -108,7 +109,7 @@ impl LateLintPass for Pass {
 impl Pass
 {
     // Searches for the relevant marker
-    fn check_for_marker(tcx: &ty::ctxt, id: ast::NodeId, marker: &str, name: &str) -> bool
+    fn check_for_marker(tcx: &TyCtxt, id: ast::NodeId, marker: &str, name: &str) -> bool
     {
         debug!("Checking for marker {}({}) on {:?}", marker, name, id);
         tcx.map.attrs(id).iter()
@@ -119,7 +120,7 @@ impl Pass
     
     /// Recursively check that the provided function is either safe or unsafe.
     // Used to avoid excessive annotating
-    fn recurse_fcn_body(&mut self, tcx: &ty::ctxt, node_id: ast::NodeId, name_id: usize, name: &str, unknown_assume: bool) -> bool
+    fn recurse_fcn_body(&mut self, tcx: &TyCtxt, node_id: ast::NodeId, name_id: usize, name: &str, unknown_assume: bool) -> bool
     {
         // Cache this method as unknown (to prevent infinite recursion)
         self.flag_cache.entry(node_id)
@@ -181,7 +182,7 @@ impl Pass
     }
     
     /// Check that a method within this crate is safe with the provided tag
-    fn crate_method_is_safe(&mut self, tcx: &ty::ctxt, node_id: ast::NodeId, name: &str, unknown_assume: bool) -> bool
+    fn crate_method_is_safe(&mut self, tcx: &TyCtxt, node_id: ast::NodeId, name: &str, unknown_assume: bool) -> bool
     {
         // Obtain tag name ID (avoids storing a string in the map)
         let name_id = 
@@ -227,7 +228,7 @@ impl Pass
     }
     
     /// Locate a #[tag_safe(<name>)] attribute on the passed item
-    pub fn method_is_safe(&mut self, tcx: &ty::ctxt, id: DefId, name: &str, unknown_assume: bool) -> bool
+    pub fn method_is_safe(&mut self, tcx: &TyCtxt, id: DefId, name: &str, unknown_assume: bool) -> bool
     {
         debug!("{}Checking method {:?} (A {})", Indent(self.lvl), id, unknown_assume);
         self.lvl += 1;
