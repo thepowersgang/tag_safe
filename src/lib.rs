@@ -29,8 +29,8 @@ use rustc_front::intravisit;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc_plugin::Registry;
-use rustc::middle::{def,ty};
-use rustc::middle::ty::TyCtxt;
+use rustc::middle::def;
+use rustc::ty::{self, TyCtxt};
 use rustc_front::hir;
 use syntax::attr::AttrMetaMethods;
 
