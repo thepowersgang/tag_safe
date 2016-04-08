@@ -19,19 +19,17 @@ extern crate syntax;
 #[macro_use]
 extern crate rustc;
 
-extern crate rustc_front;
 #[macro_use]
 extern crate rustc_plugin;
 
 use syntax::ast;
-use rustc::middle::def_id::DefId;
-use rustc_front::intravisit;
+use rustc::hir::def_id::DefId;
+use rustc::hir::def;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc_plugin::Registry;
-use rustc::middle::def;
 use rustc::ty::{self, TyCtxt};
-use rustc_front::hir;
+use rustc::hir;
 use syntax::attr::AttrMetaMethods;
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
@@ -82,7 +80,7 @@ impl LintPass for Pass {
 }
 
 impl LateLintPass for Pass {
-    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc_front::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc::hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
         for ty in attrs.iter()
             .filter(|a| a.check_name("tag_safe"))
@@ -101,7 +99,7 @@ impl LateLintPass for Pass {
                         },
                     };
             debug!("Method {:?} is marked safe '{}'", id, ty.name());
-            intravisit::walk_block(&mut v, body);
+            hir::intravisit::walk_block(&mut v, body);
         }
     }
 }
@@ -131,7 +129,7 @@ impl Pass
         // and apply a visitor to all 
         match tcx.map.get(node_id)
         {
-        rustc::front::map::NodeItem(i) =>
+        rustc::hir::map::NodeItem(i) =>
             match i.node {
             hir::ItemFn(_, _, _, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
@@ -142,13 +140,13 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    intravisit::walk_block(&mut v, body);
+                    hir::intravisit::walk_block(&mut v, body);
                 }
                 is_safe
                 },
             _ => unknown_assume,
             },
-        rustc::front::map::NodeImplItem(i) =>
+        rustc::hir::map::NodeImplItem(i) =>
             match i.node {
             hir::ImplItemKind::Method(_, ref body) => {
                 let mut is_safe = true;
@@ -158,13 +156,13 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    intravisit::walk_block(&mut v, body);
+                    hir::intravisit::walk_block(&mut v, body);
                 }
                 is_safe
                 },
             _ => unknown_assume,
             },
-        rustc::front::map::NodeForeignItem(i) =>
+        rustc::hir::map::NodeForeignItem(i) =>
             if Self::check_for_marker(tcx, i.id, "tag_safe", name) {
                 true
             }
@@ -259,7 +257,7 @@ impl Pass
     }
 }
 
-impl<'a, 'tcx: 'a, F: FnMut(&Span)> intravisit::Visitor<'a> for Visitor<'a,'tcx, F>
+impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,'tcx, F>
 {
     // Locate function/method calls in a code block
     // - uses visit_expr_post because it doesn't _need_ to do anything
