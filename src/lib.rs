@@ -53,10 +53,10 @@ struct Pass
     lvl: usize,
 }
 
-struct Visitor<'a, 'tcx: 'a, F: FnMut(&Span) + 'a>
+struct Visitor<'a, 'gcx: 'a + 'tcx, 'tcx: 'a, F: FnMut(&Span) + 'a>
 {
     pass: &'a mut Pass,
-    tcx: &'a TyCtxt<'tcx>,
+    tcx: &'a TyCtxt<'a, 'gcx, 'tcx>,
     name: &'a str,
     unknown_assume: bool,
     cb: F,
@@ -89,7 +89,7 @@ impl LateLintPass for Pass {
         {
             // Search body for calls to non safe methods
             let mut v = Visitor{
-                    pass: self, tcx: cx.tcx, name: &ty.name(),
+                    pass: self, tcx: &cx.tcx, name: &ty.name(),
                     // - Assumes an untagged method is unsafe
                     unknown_assume: false,
                     cb: |span| {
@@ -257,7 +257,7 @@ impl Pass
     }
 }
 
-impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,'tcx, F>
+impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,'gcx, 'tcx, F>
 {
     // Locate function/method calls in a code block
     // - uses visit_expr_post because it doesn't _need_ to do anything
