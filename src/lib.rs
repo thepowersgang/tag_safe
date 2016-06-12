@@ -269,7 +269,7 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
             match fcn.node
             {
             hir::ExprPath(ref _qs, ref _p) => {
-                    if let def::Def::Fn(did) = self.tcx.resolve_expr(&fcn) {
+                    if let def::Def::Fn(did) = self.tcx.expect_def(fcn.id) {
                         // Check for a safety tag
                         if !self.pass.method_is_safe(self.tcx, did, self.name, self.unknown_assume)
                         {
