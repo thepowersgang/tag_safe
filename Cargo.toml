@@ -13,4 +13,4 @@ path = "src/lib.rs"
 plugin = true
 
 [dev-dependencies]
-compiletest_rs = "0.1"
+compiletest_rs = "0.2"
