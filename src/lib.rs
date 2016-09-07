@@ -30,7 +30,6 @@ use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc_plugin::Registry;
 use rustc::ty::{self, TyCtxt};
 use rustc::hir;
-use syntax::attr::AttrMetaMethods;
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
 
@@ -87,19 +86,22 @@ impl LateLintPass for Pass {
             .filter_map(|a| a.meta_item_list())
             .flat_map(|x| x.iter())
         {
-            // Search body for calls to non safe methods
-            let mut v = Visitor{
-                    pass: self, tcx: &cx.tcx, name: &ty.name(),
-                    // - Assumes an untagged method is unsafe
-                    unknown_assume: false,
-                    cb: |span| {
-                            cx.span_lint(NOT_TAGGED_SAFE, *span,
-                                &format!("Calling {}-unsafe method from a #[tag_safe({})] method", ty.name(), ty.name())[..]
-                                );
-                        },
-                    };
-            debug!("Method {:?} is marked safe '{}'", id, ty.name());
-            hir::intravisit::walk_block(&mut v, body);
+            if let Some(ty_name) = ty.name()
+            {
+                // Search body for calls to non safe methods
+                let mut v = Visitor{
+                        pass: self, tcx: &cx.tcx, name: &ty_name,
+                        // - Assumes an untagged method is unsafe
+                        unknown_assume: false,
+                        cb: |span| {
+                                cx.span_lint(NOT_TAGGED_SAFE, *span,
+                                    &format!("Calling {}-unsafe method from a #[tag_safe({})] method", ty_name, ty_name)[..]
+                                    );
+                            },
+                        };
+                debug!("Method {:?} is marked safe '{}'", id, ty_name);
+                hir::intravisit::walk_block(&mut v, body);
+            }
         }
     }
 }
@@ -113,7 +115,7 @@ impl Pass
         tcx.map.attrs(id).iter()
             .filter_map( |a| if a.check_name(marker) { a.meta_item_list() } else { None })
             .flat_map(|x| x.iter())
-            .any(|a| a.name() == name)
+            .any(|a| a.name().as_ref().map(|x| &x[..]) == Some(name))
     }
     
     /// Recursively check that the provided function is either safe or unsafe.
@@ -237,12 +239,12 @@ impl Pass
                 for a in tcx.get_attrs(id).iter()
                 {
                     if a.check_name("tag_safe") {
-                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name() == name) {
+                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name().as_ref().map(|x| &x[..]) == Some(name)) {
                             return true;
                         }
                     }
                     if a.check_name("tag_unsafe") {
-                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name() == name) {
+                        if a.meta_item_list().iter().flat_map(|a| a.iter()).any(|a| a.name().as_ref().map(|x| &x[..]) == Some(name)) {
                             return false;
                         }
                     }
