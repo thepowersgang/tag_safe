@@ -23,7 +23,7 @@ extern crate rustc;
 extern crate rustc_plugin;
 
 use syntax::ast;
-use rustc::hir::def_id::DefId;
+use rustc::hir::def_id::{self,DefId};
 use rustc::hir::def;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
@@ -232,7 +232,7 @@ impl Pass
     {
         debug!("{}Checking method {:?} (A {})", Indent(self.lvl), id, unknown_assume);
         self.lvl += 1;
-        let rv = if id.krate == 0 {
+        let rv = if id.krate == def_id::LOCAL_CRATE {
                 self.crate_method_is_safe(tcx, tcx.map.as_local_node_id(id).unwrap(), name, unknown_assume)
             }
             else {
