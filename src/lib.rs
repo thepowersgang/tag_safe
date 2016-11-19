@@ -47,7 +47,7 @@ struct Pass
     /// Cache of flag types
     flag_types: Vec<String>,
     /// Node => (Type => IsSafe)
-    flag_cache: ::rustc::util::nodemap::NodeMap< ::rustc::util::nodemap::FnvHashMap<usize, SafetyType> >,
+    flag_cache: ::rustc::util::nodemap::NodeMap< ::std::collections::HashMap<usize, SafetyType> >,
     
     lvl: usize,
 }
@@ -79,7 +79,7 @@ impl LintPass for Pass {
 }
 
 impl LateLintPass for Pass {
-    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc::hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Block, _: Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: ::rustc::hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Expr, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
         for ty in attrs.iter()
             .filter(|a| a.check_name("tag_safe"))
@@ -100,7 +100,7 @@ impl LateLintPass for Pass {
                             },
                         };
                 debug!("Method {:?} is marked safe '{}'", id, ty_name);
-                hir::intravisit::walk_block(&mut v, body);
+                hir::intravisit::walk_expr(&mut v, body);
             }
         }
     }
@@ -142,7 +142,7 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_block(&mut v, body);
+                    hir::intravisit::walk_expr(&mut v, body);
                 }
                 is_safe
                 },
@@ -158,7 +158,7 @@ impl Pass
                         unknown_assume: true,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_block(&mut v, body);
+                    hir::intravisit::walk_expr(&mut v, body);
                 }
                 is_safe
                 },
