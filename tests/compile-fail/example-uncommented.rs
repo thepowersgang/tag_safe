@@ -16,7 +16,7 @@ static S_NON_IRQ_SPINLOCK: Spinlock = Spinlock;
 static S_IRQ_SPINLOCK: IrqSpinlock = IrqSpinlock(Spinlock);
 
 #[deny(not_tagged_safe)]    // Make the lint an error
-#[tag_safe(irq)]    // Require this method be IRQ safe
+#[req_safe(irq)]    // Require this method be IRQ safe
 fn irq_handler()
 {
     let _lock = acquire_non_irq_spinlock(&S_NON_IRQ_SPINLOCK);
@@ -25,8 +25,7 @@ fn irq_handler()
 
 // This method handles IRQ safety internally, and hence makes
 // this lint allowable.
-#[tag_safe(irq)]
-#[allow(not_tagged_safe)]
+#[is_safe(irq)]
 fn acquire_irq_spinlock(l: &'static IrqSpinlock) -> (IRQLock,HeldSpinlock)
 {
     // Prevent IRQs from firing
@@ -36,14 +35,14 @@ fn acquire_irq_spinlock(l: &'static IrqSpinlock) -> (IRQLock,HeldSpinlock)
 }
 
 // Stop IRQs from firing until the returned value is dropped
-#[tag_safe(irq)]
+#[is_safe(irq)]
 fn hold_irqs() -> IRQLock
 {
     IRQLock
 }
 
 // Not safe to call in an IRQ without protection (as that can lead to a uniprocessor deadlock)
-#[tag_unsafe(irq)]
+#[not_safe(irq)]
 fn acquire_non_irq_spinlock(l: &'static Spinlock) -> HeldSpinlock
 {
     HeldSpinlock(l)

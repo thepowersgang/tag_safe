@@ -1,12 +1,12 @@
 #![feature(custom_attribute,plugin)]
 #![plugin(tag_safe)]
-#![allow(dead_code,unused_attributes)]
+#![allow(dead_code)]
 
 fn main() {
 }
 
 
-#[tag_unsafe(a)]
+#[not_safe(a)]
 fn unsafe_method() {
 }
 
@@ -15,7 +15,7 @@ fn wrapper() {
 }
 
 #[deny(not_tagged_safe)]
-#[tag_safe(a)]
+#[req_safe(a)]
 fn caller() {
 	wrapper()
 	//~^ ERROR Calling a-unsafe method from
