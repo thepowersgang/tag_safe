@@ -33,26 +33,17 @@ impl MultiItemDecorator for HandlerTaggedSafe
 			};
 		let mut lh = ::database::CACHE.write().expect("Poisoned lock on tag_safe cache");
 
-		let tags = if let MetaItemKind::List(ref v) = meta_item.node { v } else { return ; };
-		for tag_item_ptr in tags
-		{
-			let (tag_name, filename) = if let NestedMetaItemKind::MetaItem(ref ptr) = tag_item_ptr.node {
-					if let MetaItemKind::NameValue(ref value_lit) = ptr.node {
-						if let LitKind::Str(ref value, _) = value_lit.node {
-							(ptr.name, value)
-						}
-						else {
-							panic!("");
-						}
-					}
-					else {
-						panic!("");
-					}
+		for (tag_name, filename) in get_inner_items(meta_item, "tagged_safe")
+			.filter_map(|ptr| 
+				if let MetaItemKind::NameValue( ast::Lit { node: LitKind::Str(ref value, _), .. } ) = ptr.node {
+					Some( (ptr.name, value) )
 				}
 				else {
-					panic!("");
-				};
-			
+					warn!("");
+					None
+				}
+				)
+		{
 			let tag = lh.get_tag_or_add(&tag_name.as_str());
 			lh.load_crate(&crate_name.as_str(), tag, &filename.as_str());
 		}
@@ -146,26 +137,35 @@ impl MultiItemDecorator for HandlerNotSafe
 //	}
 //}
 
+fn get_inner_items<'a>(meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=&'a ast::MetaItem>+'a {
+	let it = if let MetaItemKind::List(ref v) = meta_item.node {
+			v.iter()
+		}
+		else {
+			warn!("Attribute '{}' must take a list", attr_name);
+			[].iter()
+		};
+	it.filter_map(|tag_meta|
+		if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
+			Some(ptr)
+		}
+		else {
+			warn!("");
+			None
+		}
+		)
+}
+
 fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
-	if let MetaItemKind::List(ref v) = meta_item.node {
-		v.iter().filter_map(|tag_meta|
-			if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
-				if let MetaItemKind::Word = ptr.node {
-					Some(ptr.name)
-				}
-				else {
-					warn!("");
-					None
-				}
+	get_inner_items(meta_item, attr_name)
+		.filter_map(|ptr|
+			if let MetaItemKind::Word = ptr.node {
+				Some(ptr.name)
 			}
 			else {
 				warn!("");
 				None
 			}
 			)
-	}
-	else {
-		panic!("");
-	}
 }
 

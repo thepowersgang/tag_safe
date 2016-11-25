@@ -1,7 +1,7 @@
 
 use syntax::ast;
 use syntax::ast::{MetaItemKind,NestedMetaItemKind,LitKind};
-use rustc::hir::def_id::{self,DefId};
+use rustc::hir::def_id::DefId;
 use rustc::hir::def;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
@@ -156,7 +156,7 @@ impl Pass
         if ! id.is_local()
         {
             // TODO: Get the entry from the crate cache
-            if let Some(v) = ::database::CACHE.read().unwrap().get_extern(id.krate, id.index, tag) {
+            if let Some(v) = ::database::CACHE.read().unwrap().get_extern(tcx,id.krate, id.index, tag) {
                 debug!("{:?} - {} (extern cached)", id, v);
                 v
             }
