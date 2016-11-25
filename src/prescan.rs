@@ -33,13 +33,13 @@ impl MultiItemDecorator for HandlerTaggedSafe
 			};
 		let mut lh = ::database::CACHE.write().expect("Poisoned lock on tag_safe cache");
 
-		let tags = if let MetaItemKind::List(_, ref v) = meta_item.node { v } else { return ; };
+		let tags = if let MetaItemKind::List(ref v) = meta_item.node { v } else { return ; };
 		for tag_item_ptr in tags
 		{
 			let (tag_name, filename) = if let NestedMetaItemKind::MetaItem(ref ptr) = tag_item_ptr.node {
-					if let MetaItemKind::NameValue(ref name, ref value_lit) = ptr.node {
+					if let MetaItemKind::NameValue(ref value_lit) = ptr.node {
 						if let LitKind::Str(ref value, _) = value_lit.node {
-							(name, value)
+							(ptr.name, value)
 						}
 						else {
 							panic!("");
@@ -53,8 +53,8 @@ impl MultiItemDecorator for HandlerTaggedSafe
 					panic!("");
 				};
 			
-			let tag = lh.get_tag_or_add(tag_name);
-			lh.load_crate(&crate_name.as_str(), tag, filename);
+			let tag = lh.get_tag_or_add(&tag_name.as_str());
+			lh.load_crate(&crate_name.as_str(), tag, &filename.as_str());
 		}
 	}
 }
@@ -104,7 +104,7 @@ impl MultiItemDecorator for HandlerIsSafe
 		for tag_name in get_tags(ecx, meta_item, "is_safe")
 		{
 			debug!("#[is_safe] {} - {}", tag_name, node_id);
-			/*let tag = */lh.get_tag_or_add(tag_name);
+			/*let tag = */lh.get_tag_or_add(&tag_name.as_str());
 			//lh.mark(node_id, tag, true);
 		}
 	}
@@ -122,7 +122,7 @@ impl MultiItemDecorator for HandlerNotSafe
 		for tag_name in get_tags(ecx, meta_item, "not_safe")
 		{
 			debug!("#[not_safe] {} - {}", tag_name, node_id);
-			/*let tag = */lh.get_tag_or_add(tag_name);
+			/*let tag = */lh.get_tag_or_add(&tag_name.as_str());
 			//lh.mark(node_id, tag, false);
 		}
 	}
@@ -146,12 +146,12 @@ impl MultiItemDecorator for HandlerNotSafe
 //	}
 //}
 
-fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=&'a str>+'a {
-	if let MetaItemKind::List(_, ref v) = meta_item.node {
+fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
+	if let MetaItemKind::List(ref v) = meta_item.node {
 		v.iter().filter_map(|tag_meta|
 			if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
-				if let MetaItemKind::Word(ref name) = ptr.node {
-					Some(&**name)
+				if let MetaItemKind::Word = ptr.node {
+					Some(ptr.name)
 				}
 				else {
 					warn!("");

@@ -31,23 +31,23 @@ impl LateLintPass for Pass {
             let mut lh = ::database::CACHE.write().unwrap();
             for tag_name in get_tags(attrs, "is_safe")
             {
-                let tag = lh.get_tag_or_add(tag_name);
+                let tag = lh.get_tag_or_add(&tag_name.as_str());
                 lh.mark(id, tag,  true);
             }
             for tag_name in get_tags(attrs, "not_safe")
             {
-                let tag = lh.get_tag_or_add(tag_name);
+                let tag = lh.get_tag_or_add(&tag_name.as_str());
                 lh.mark(id, tag,  false);
             }
         }
         
         // For each required safety, check
-        for ty_name in get_tags(attrs, "req_safe")
+        for tag_name in get_tags(attrs, "req_safe")
         {
             let ty_tag = {
                 let mut lh = ::database::CACHE.write().unwrap();
-                let tag = lh.get_tag_or_add(&ty_name);
-                //let tag = if let Some(v) = lh.get_tag_opt(&ty_name) { v } else { error!("Tag {} unknown", ty_name);  continue; };
+                let tag = lh.get_tag_or_add(&tag_name.as_str());
+                //let tag = if let Some(v) = lh.get_tag_opt(&tag_name.as_str()) { v } else { error!("Tag {} unknown", ty_name);  continue; };
                 lh.mark(id, tag,  true);
                 tag
                 };
@@ -57,11 +57,11 @@ impl LateLintPass for Pass {
                     pass: self, tcx: &cx.tcx, tag: ty_tag,
                     cb: |span| {
                             cx.span_lint(NOT_TAGGED_SAFE, *span,
-                                &format!("Calling {}-unsafe method from a #[req_safe({})] method", ty_name, ty_name)[..]
+                                &format!("Calling {0}-unsafe method from a #[req_safe({0})] method", tag_name)[..]
                                 );
                         },
                     };
-            debug!("Method {:?} is marked safe '{}'", id, ty_name);
+            debug!("Method {:?} is marked safe '{}'", id, tag_name);
             hir::intravisit::walk_expr(&mut v, body);
         }
 
@@ -80,13 +80,13 @@ impl Pass
         for tag_name in Iterator::chain( get_tags(attrs, "is_safe"), get_tags(attrs, "req_safe") )
         {
             debug!("#[is_safe/req_safe] {} - {}", tag_name, node_id);
-            let tag = lh.get_tag_or_add(tag_name);
+            let tag = lh.get_tag_or_add(&tag_name.as_str());
             lh.mark(node_id, tag,  true);
         }
         for tag_name in get_tags(attrs, "not_safe")
         {
             debug!("#[not_safe] {} - {}", tag_name, node_id);
-            let tag = lh.get_tag_or_add(tag_name);
+            let tag = lh.get_tag_or_add(&tag_name.as_str());
             lh.mark(node_id, tag,  false);
         }
     }
@@ -261,19 +261,11 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
     }
 }
 
-fn get_meta_name(mik: &MetaItemKind) -> &str {
-    match *mik
-    {
-    MetaItemKind::Word(ref name) => name,
-    MetaItemKind::List(ref name, _) => name,
-    MetaItemKind::NameValue(ref name, _) => name,
-    }
-}
-fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl Iterator<Item=&'a str>+'a {
+fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
     meta_items.iter()
-        .filter(move |attr| get_meta_name(&attr.node.value.node) == attr_name)
+        .filter(move |attr| attr.value.name == attr_name)
         .flat_map(|attr|
-            if let MetaItemKind::List(_, ref v) = attr.node.value.node {
+            if let MetaItemKind::List(ref v) = attr.value.node {
                 v.iter()
             }
             else {
@@ -282,8 +274,8 @@ fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl It
             )
         .filter_map(|tag_meta|
             if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
-                if let MetaItemKind::Word(ref name) = ptr.node {
-                    Some(&**name)
+                if let MetaItemKind::Word = ptr.node {
+                    Some(ptr.name)
                 }
                 else {
                     warn!("");

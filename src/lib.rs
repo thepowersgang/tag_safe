@@ -33,9 +33,9 @@ mod database;
 pub fn plugin_registrar(reg: &mut ::rustc_plugin::Registry) {
     use syntax::feature_gate::AttributeType;
     use syntax::ext::base::SyntaxExtension;
-    use syntax::parse::token::intern;
+    use syntax::symbol::Symbol;
     
-    reg.register_syntax_extension(intern("tagged_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerTaggedSafe)) );
+    reg.register_syntax_extension(Symbol::intern("tagged_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerTaggedSafe)) );
     //reg.register_syntax_extension(intern("is_safe" ), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerIsSafe) ) );
     //reg.register_syntax_extension(intern("not_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerNotSafe)) );
     //reg.register_syntax_extension(intern("req_safe"), SyntaxExtension::MultiModifier(Box::new(prescan::HandlerReqSafe)) );
