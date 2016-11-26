@@ -8,12 +8,12 @@ Function States
 - Explicitly safe
 - Explicitly unsafe
 
+`req_safe` trait methods in implementations must me marked `req_safe` or `is_safe`
 
 Annotation storage
 - Local attributes/cache
 - Crate metadata
 - External list (what format, and where is it from?)
- - 
  - An external file would have to be able to encode all function paths
 
 # Draft

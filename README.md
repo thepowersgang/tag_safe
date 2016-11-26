@@ -1,4 +1,4 @@
-# tag_safe
+# `tag_safe`
 
 [![Build Status](https://travis-ci.org/thepowersgang/tag_safe.svg)](https://travis-ci.org/thepowersgang/tag_safe)
 
@@ -6,9 +6,22 @@ This is a linter designed originally for use with a kernel, where functions need
 within an IRQ handler, and handle the case where they may interrupt themselves).
 
 # Detailed #
-If a function is annotated with `#[tag_safe(ident)]` (where `ident` can be anything, and defines the type of safety) this linter will check that call functions called by that function either have that same annotation, or don't call any function with the reverse `#[tag_unsafe(ident)]` annotation.
+If a function is annotated with `#[req_safe(ident)]` (where `ident` can be anything, and defines the type of safety)
+this linter will check that call functions called by that function are either annotated with the same annotation or
+`#[is_safe(ident)]`, OR they do no call functions with the reverse `#[is_unsafe(ident)]` annotation.
 
-By default this lint is a warning, in functions that internally ensure safety it can be turned off with `#[allow(not_tagged_safe)]`, and for functions that require safety it can be made an error with `#[deny(not_tagged_safe)]`
+By default this lint is a warning, if you would like to make it a hard error add `#[deny(not_tagged_safe)]`
+
+Extern crate imports can be annotated with `#[tagged_safe(tag="path/to/list.txt")` to load a list of tagged methods
+from an external file. The path is relative to where rustc was invoked (currently), and contains a default tag (true
+or false) followed by a newline separated list of methods.
+
+## Example ##
+This file annotates all functions in libstd as safe, except for `std::io::_print` (which is the backend for `print!`)
+```
+true
+std::io::_print
+```
 
 # Usage #
 Below is an example of using this flag to prevent accidentally using an IRQ-unsafe method in an IRQ handler.
@@ -31,7 +44,7 @@ static S_NON_IRQ_SPINLOCK: Spinlock = Spinlock;
 static S_IRQ_SPINLOCK: IrqSpinlock = IrqSpinlock(Spinlock);
 
 #[deny(not_tagged_safe)]	// Make the lint an error
-#[tag_safe(irq)]	// Require this method be IRQ safe
+#[req_safe(irq)]	// Require this method be IRQ safe
 fn irq_handler()
 {
 	// The following line would error if it were uncommented, as the
@@ -45,8 +58,7 @@ fn irq_handler()
 
 // This method handles IRQ safety internally, and hence makes
 // this lint allowable.
-#[tag_safe(irq)]
-#[allow(not_tagged_safe)]
+#[is_safe(irq)]
 fn acquire_irq_spinlock(l: &'static IrqSpinlock) -> (IRQLock,HeldSpinlock)
 {
 	// Prevent IRQs from firing
@@ -56,7 +68,7 @@ fn acquire_irq_spinlock(l: &'static IrqSpinlock) -> (IRQLock,HeldSpinlock)
 }
 
 // Stop IRQs from firing until the returned value is dropped
-#[tag_safe(irq)]
+#[is_safe(irq)]
 fn hold_irqs() -> IRQLock
 {
 	IRQLock
@@ -64,7 +76,7 @@ fn hold_irqs() -> IRQLock
 
 // Not safe to call in an IRQ without protection (as that can lead to a
 // uniprocessor deadlock)
-#[tag_unsafe(irq)]
+#[is_unsafe(irq)]
 fn acquire_non_irq_spinlock(l: &'static Spinlock) -> HeldSpinlock
 {
 	HeldSpinlock(l)
