@@ -25,6 +25,7 @@ impl MultiItemDecorator for HandlerTaggedSafe
 			//Annotatable::Item(box Item { node: ItemKind::ExternCrate(ref opt_name) }) => {
 			Annotatable::Item(ref i) =>
 				match i.node {
+				ItemKind::ExternCrate(None) => i.ident.name,
 				ItemKind::ExternCrate(Some(crate_name)) => crate_name,
 				_ => return ,
 				},

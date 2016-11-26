@@ -1,4 +1,4 @@
-#![feature(custom_attribute,plugin)]
+#![feature(plugin)]
 #![plugin(tag_safe)]
 #![deny(not_tagged_safe)]
 
