@@ -76,7 +76,7 @@ fn hold_irqs() -> IRQLock
 
 // Not safe to call in an IRQ without protection (as that can lead to a
 // uniprocessor deadlock)
-#[is_unsafe(irq)]
+#[not_safe(irq)]
 fn acquire_non_irq_spinlock(l: &'static Spinlock) -> HeldSpinlock
 {
 	HeldSpinlock(l)
