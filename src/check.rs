@@ -1,6 +1,6 @@
 
 use syntax::ast;
-use syntax::ast::{MetaItemKind,NestedMetaItemKind,LitKind};
+use syntax::ast::{MetaItemKind,NestedMetaItemKind};
 use rustc::hir::def_id::DefId;
 use rustc::hir::def;
 use syntax::codemap::Span;
@@ -219,22 +219,25 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
             match fcn.node
             {
             hir::ExprPath(ref _qs, ref _p) => {
-                    if let def::Def::Fn(did) = self.tcx.expect_def(fcn.id) {
-                        // Check for a safety tag
-                        if !self.pass.method_is_safe(self.tcx, did, self.tag)
-                        {
-                            (self.cb)(&ex.span);
-                        }
-                        else {
-                            debug!("Safe call {:?}", ex);
-                        }
-                    }
-                    else {
-                        debug!("Call ExprPath with no def");
-                    }
+				match self.tcx.expect_def(fcn.id)
+				{
+				def::Def::Fn(did) | def::Def::Method(did) => {
+					// Check for a safety tag
+					if !self.pass.method_is_safe(self.tcx, did, self.tag)
+					{
+						(self.cb)(&ex.span);
+					}
+					else {
+						debug!("Safe call {:?}", ex);
+					}
+					},
+				_ => {
+					info!("Call ExprPath with an unknown Def type");
+					}
+				}
                 },
             _ => {
-                debug!("Call without ExprPath");
+                info!("Call without ExprPath");
                 },
             },
         
@@ -247,12 +250,10 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
                 let callee = mm.get( &ty::MethodCall::expr(ex.id) ).unwrap();
                 let id = callee.def_id;
                 
-                //if let ty::MethodStatic(id) = callee.origin {
-                        // Check for a safety tag
-                        if !self.pass.method_is_safe(self.tcx, id, self.tag) {
-                            (self.cb)(&ex.span);
-                        }
-                //}
+				// Check for a safety tag
+				if !self.pass.method_is_safe(self.tcx, id, self.tag) {
+					(self.cb)(&ex.span);
+				}
             },
         
         // Ignore any other type of node

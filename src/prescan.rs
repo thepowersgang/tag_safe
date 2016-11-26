@@ -4,7 +4,6 @@ use syntax::ast::{MetaItemKind,NestedMetaItemKind,LitKind};
 use syntax::codemap::Span;
 use syntax::ext::base::{MultiItemModifier,MultiItemDecorator};
 use syntax::ext::base::{ExtCtxt,Annotatable};
-use rustc::lint::LintArray;	// Needed for the lint_array macro
 
 
 #[derive(Default)]
@@ -45,7 +44,13 @@ impl MultiItemDecorator for HandlerTaggedSafe
 				)
 		{
 			let tag = lh.get_tag_or_add(&tag_name.as_str());
-			lh.load_crate(&crate_name.as_str(), tag, &filename.as_str());
+			match lh.load_crate(&crate_name.as_str(), tag, &filename.as_str())
+			{
+			Ok(_) => {},
+			Err(e) => {
+				ecx.span_err(span, &format!("Couldn't open tagging list file from '{}' - {}", filename.as_str(), e));
+				},
+			}
 		}
 	}
 }
@@ -85,7 +90,7 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 
 impl MultiItemDecorator for HandlerIsSafe
 {
-	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
+	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
 		let node_id = match get_fn_node_id("is_safe", item)
 			{
 			Some(v) => v,
@@ -103,7 +108,7 @@ impl MultiItemDecorator for HandlerIsSafe
 
 impl MultiItemDecorator for HandlerNotSafe
 {
-	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
+	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
 		let node_id = match get_fn_node_id("not_safe", item)
 			{
 			Some(v) => v,

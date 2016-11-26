@@ -98,7 +98,7 @@ impl StaticCache
 			{
 			"true" => true,
 			"false" => false,
-			_ => return Err(::std::io::Error::new(::std::io::ErrorKind::InvalidData, "")),
+			_ => return Err(::std::io::Error::new(::std::io::ErrorKind::InvalidData, "First line wasn't `true` or `false`")),
 			}
 			};
 		let cache = match self.ext_crates.entry(String::from(crate_name)).or_insert_with(|| Default::default()).tag_map.entry(tag.0)
