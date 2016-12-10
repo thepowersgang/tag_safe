@@ -108,7 +108,7 @@ impl Pass
                         pass: self, tcx: tcx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_expr(&mut v, body);
+                    hir::intravisit::walk_expr(&mut v, tcx.map.expr(*body));
                 }
                 is_safe
                 },
@@ -127,7 +127,7 @@ impl Pass
                         pass: self, tcx: tcx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_expr(&mut v, body);
+                    hir::intravisit::walk_expr(&mut v, tcx.map.expr(*body));
                 }
                 is_safe
                 },
@@ -209,6 +209,10 @@ struct Visitor<'a, 'gcx: 'a + 'tcx, 'tcx: 'a, F: FnMut(&Span) + 'a>
 
 impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,'gcx, 'tcx, F>
 {
+	fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'a> {
+		panic!("TODO");
+	}
+
     // Locate function/method calls in a code block
     fn visit_expr_post(&mut self, ex: &'a hir::Expr) {
         debug!("visit node - {:?}", ex);
@@ -218,8 +222,8 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
         hir::ExprCall(ref fcn, _) =>
             match fcn.node
             {
-            hir::ExprPath(ref _qs, ref _p) => {
-				match self.tcx.expect_def(fcn.id)
+            hir::ExprPath(ref qp, ..) => {
+				match self.tcx.tables.borrow().qpath_def(qp, fcn.id)
 				{
 				def::Def::Fn(did) | def::Def::Method(did) => {
 					// Check for a safety tag
