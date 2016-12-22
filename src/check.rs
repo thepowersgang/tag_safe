@@ -22,7 +22,7 @@ impl LintPass for Pass {
     }
 }
 
-impl LateLintPass for Pass {
+impl<'a,'b> LateLintPass<'a,'b> for Pass {
     fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Expr, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
 
