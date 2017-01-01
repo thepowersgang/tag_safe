@@ -23,7 +23,7 @@ impl LintPass for Pass {
 }
 
 impl<'a,'b> LateLintPass<'a,'b> for Pass {
-    fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Expr, _: Span, id: ast::NodeId) {
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Body, _: Span, id: ast::NodeId) {
         let attrs = cx.tcx.map.attrs(id);
 
         // If this function is tagged with a particular safety, store
@@ -62,7 +62,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
                         },
                     };
             debug!("Method {:?} is marked safe '{}'", id, tag_name);
-            hir::intravisit::walk_expr(&mut v, body);
+            hir::intravisit::walk_body(&mut v, body);
         }
 
         // TODO: For all known safeties (that aren't already set) populate.
@@ -108,7 +108,7 @@ impl Pass
                         pass: self, tcx: tcx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_expr(&mut v, tcx.map.expr(*body));
+                    hir::intravisit::walk_body(&mut v, tcx.map.body(*body));
                 }
                 is_safe
                 },
@@ -127,7 +127,7 @@ impl Pass
                         pass: self, tcx: tcx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_expr(&mut v, tcx.map.expr(*body));
+                    hir::intravisit::walk_body(&mut v, tcx.map.body(*body));
                 }
                 is_safe
                 },
@@ -214,7 +214,7 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
 	}
 
     // Locate function/method calls in a code block
-    fn visit_expr_post(&mut self, ex: &'a hir::Expr) {
+    fn visit_expr(&mut self, ex: &'a hir::Expr) {
         debug!("visit node - {:?}", ex);
         match ex.node
         {
@@ -263,6 +263,7 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
         // Ignore any other type of node
         _ => {},
         }
+        hir::intravisit::walk_expr(self, ex);
     }
 }
 
