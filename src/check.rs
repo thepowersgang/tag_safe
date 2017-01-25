@@ -167,7 +167,7 @@ impl Pass
         }
         else
         {
-            let node_id = cx.tcx.map.as_local_node_id(id).unwrap();
+            let node_id = cx.tcx.map.as_local_node_id(id).expect("Unable to locate node");
             let mut local_opt = ::database::CACHE.read().unwrap().get_local(node_id, tag);
             // NOTE: This only fires once (ideally)
             if local_opt.is_none() {
@@ -245,17 +245,18 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
         
         // Method call expressions - get the relevant method
         hir::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
-            {
-                let mm = &self.cx.tables.method_map;
-                
-                let callee = mm.get( &ty::MethodCall::expr(ex.id) ).unwrap();
+			match self.cx.tables.method_map.get( &ty::MethodCall::expr(ex.id) )
+			{
+			Some(callee) => {
                 let id = callee.def_id;
                 
 				// Check for a safety tag
 				if !self.pass.method_is_safe(self.cx, id, self.tag) {
 					(self.cb)(&ex.span);
 				}
-            },
+				},
+			None => info!("ExprMethodCall with unknown callee"),
+			},
         
         // Ignore any other type of node
         _ => {},
