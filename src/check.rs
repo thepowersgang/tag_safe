@@ -54,7 +54,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
 
             // Search body for calls to non safe methods
             let mut v = Visitor {
-                    pass: self, tcx: &cx.tcx, tag: ty_tag,
+                    pass: self, cx: cx, tag: ty_tag,
                     cb: |span| {
                             cx.span_lint(NOT_TAGGED_SAFE, *span,
                                 &format!("Calling {0}-unsafe method from a #[req_safe({0})] method", tag_name)[..]
@@ -93,10 +93,10 @@ impl Pass
 
     /// Recursively check that the provided function is either safe or unsafe.
     // Used to avoid excessive annotating
-    fn recurse_fcn_body(&mut self, tcx: &TyCtxt, node_id: ast::NodeId, tag: ::database::Tag) -> bool
+    fn recurse_fcn_body(&mut self, cx: &lint::LateContext, node_id: ast::NodeId, tag: ::database::Tag) -> bool
     {
         // and apply a visitor to all 
-        match tcx.map.get(node_id)
+        match cx.tcx.map.get(node_id)
         {
         hir::map::NodeItem(i) =>
             match i.node {
@@ -105,10 +105,10 @@ impl Pass
                 let mut is_safe = true;
                 {
                     let mut v = Visitor {
-                        pass: self, tcx: tcx, tag: tag,
+                        pass: self, cx: cx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_body(&mut v, tcx.map.body(*body));
+                    hir::intravisit::walk_body(&mut v, cx.tcx.map.body(*body));
                 }
                 is_safe
                 },
@@ -124,10 +124,10 @@ impl Pass
                 let mut is_safe = true;
                 {
                     let mut v = Visitor {
-                        pass: self, tcx: tcx, tag: tag,
+                        pass: self, cx: cx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_body(&mut v, tcx.map.body(*body));
+                    hir::intravisit::walk_body(&mut v, cx.tcx.map.body(*body));
                 }
                 is_safe
                 },
@@ -151,12 +151,12 @@ impl Pass
     }
     
     /// Locate a #[tag_safe(<name>)] attribute on the passed item
-    pub fn method_is_safe(&mut self, tcx: &TyCtxt, id: DefId, tag: ::database::Tag) -> bool
+    pub fn method_is_safe(&mut self, cx: &lint::LateContext, id: DefId, tag: ::database::Tag) -> bool
     {
         if ! id.is_local()
         {
             // TODO: Get the entry from the crate cache
-            if let Some(v) = ::database::CACHE.read().unwrap().get_extern(tcx,id.krate, id.index, tag) {
+            if let Some(v) = ::database::CACHE.read().unwrap().get_extern(&cx.tcx,id.krate, id.index, tag) {
                 debug!("{:?} - {} (extern cached)", id, v);
                 v
             }
@@ -167,11 +167,11 @@ impl Pass
         }
         else
         {
-            let node_id = tcx.map.as_local_node_id(id).unwrap();
+            let node_id = cx.tcx.map.as_local_node_id(id).unwrap();
             let mut local_opt = ::database::CACHE.read().unwrap().get_local(node_id, tag);
             // NOTE: This only fires once (ideally)
             if local_opt.is_none() {
-                self.fill_cache_for(tcx, node_id);
+                self.fill_cache_for(&cx.tcx, node_id);
                 local_opt = ::database::CACHE.read().unwrap().get_local(node_id, tag);
             }
             if let Some(v) = local_opt {
@@ -187,7 +187,7 @@ impl Pass
                 }
                 else {
                     self.visit_stack.push(node_id);
-                    let rv = self.recurse_fcn_body(tcx, node_id, tag);
+                    let rv = self.recurse_fcn_body(cx, node_id, tag);
                     self.visit_stack.pop();
                     
                     debug!("{} - {} (recursed)", node_id, rv);
@@ -199,15 +199,15 @@ impl Pass
     }
 }
 
-struct Visitor<'a, 'gcx: 'a + 'tcx, 'tcx: 'a, F: FnMut(&Span) + 'a>
+struct Visitor<'a, 'tcx: 'a, F: FnMut(&Span) + 'a>
 {
     pass: &'a mut Pass,
-    tcx: &'a TyCtxt<'a, 'gcx, 'tcx>,
+	cx: &'a lint::LateContext<'a,'tcx>,
     tag: ::database::Tag,
     cb: F,
 }
 
-impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,'gcx, 'tcx, F>
+impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a, 'tcx, F>
 {
 	fn nested_visit_map<'this>(&'this mut self) -> hir::intravisit::NestedVisitorMap<'this, 'a> {
 		hir::intravisit::NestedVisitorMap::None
@@ -219,43 +219,40 @@ impl<'a, 'gcx: 'tcx + 'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a
         match ex.node
         {
         // Call expressions - check that it's a path call
-        hir::ExprCall(ref fcn, _) =>
-            match fcn.node
-            {
-            hir::ExprPath(ref qp, ..) => {
-				match self.tcx.tables.borrow().qpath_def(qp, fcn.id)
+        hir::ExprCall(ref fcn, ..) =>
+			match fcn.node
+			{
+			hir::ExprPath(ref qp, ..) =>
+				match self.cx.tables.qpath_def(qp, fcn.id)
 				{
-				def::Def::Fn(did) | def::Def::Method(did) => {
+				def::Def::Fn(did) | def::Def::Method(did) =>
 					// Check for a safety tag
-					if !self.pass.method_is_safe(self.tcx, did, self.tag)
+					if !self.pass.method_is_safe(self.cx, did, self.tag)
 					{
 						(self.cb)(&ex.span);
 					}
 					else {
 						debug!("Safe call {:?}", ex);
-					}
 					},
 				_ => {
 					info!("Call ExprPath with an unknown Def type");
-					}
-				}
-                },
-            _ => {
-                info!("Call without ExprPath");
-                },
-            },
+					},
+				},
+			_ => {
+				info!("Call without ExprPath");
+				},
+			},
         
         // Method call expressions - get the relevant method
         hir::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
             {
-                let tables = self.tcx.tables.borrow();
-                let mm = &tables.method_map;
+                let mm = &self.cx.tables.method_map;
                 
                 let callee = mm.get( &ty::MethodCall::expr(ex.id) ).unwrap();
                 let id = callee.def_id;
                 
 				// Check for a safety tag
-				if !self.pass.method_is_safe(self.tcx, id, self.tag) {
+				if !self.pass.method_is_safe(self.cx, id, self.tag) {
 					(self.cb)(&ex.span);
 				}
             },
