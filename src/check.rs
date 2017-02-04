@@ -24,7 +24,7 @@ impl LintPass for Pass {
 
 impl<'a,'b> LateLintPass<'a,'b> for Pass {
     fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Body, _: Span, id: ast::NodeId) {
-        let attrs = cx.tcx.map.attrs(id);
+        let attrs = cx.tcx.hir.attrs(id);
 
         // If this function is tagged with a particular safety, store
         {
@@ -75,7 +75,7 @@ impl Pass
     fn fill_cache_for(&mut self, tcx: &TyCtxt, node_id: ast::NodeId)
     {
         debug!("Filling cache for node {:?}", node_id);
-        let attrs = tcx.map.attrs(node_id);
+        let attrs = tcx.hir.attrs(node_id);
         let mut lh = ::database::CACHE.write().unwrap();
         for tag_name in Iterator::chain( get_tags(attrs, "is_safe"), get_tags(attrs, "req_safe") )
         {
@@ -96,7 +96,7 @@ impl Pass
     fn recurse_fcn_body(&mut self, cx: &lint::LateContext, node_id: ast::NodeId, tag: ::database::Tag) -> bool
     {
         // and apply a visitor to all 
-        match cx.tcx.map.get(node_id)
+        match cx.tcx.hir.get(node_id)
         {
         hir::map::NodeItem(i) =>
             match i.node {
@@ -108,7 +108,7 @@ impl Pass
                         pass: self, cx: cx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_body(&mut v, cx.tcx.map.body(*body));
+                    hir::intravisit::walk_body(&mut v, cx.tcx.hir.body(*body));
                 }
                 is_safe
                 },
@@ -127,7 +127,7 @@ impl Pass
                         pass: self, cx: cx, tag: tag,
                         cb: |_| { is_safe = false; }
                         };
-                    hir::intravisit::walk_body(&mut v, cx.tcx.map.body(*body));
+                    hir::intravisit::walk_body(&mut v, cx.tcx.hir.body(*body));
                 }
                 is_safe
                 },
@@ -167,7 +167,7 @@ impl Pass
         }
         else
         {
-            let node_id = cx.tcx.map.as_local_node_id(id).expect("Unable to locate node");
+            let node_id = cx.tcx.hir.as_local_node_id(id).expect("Unable to locate node");
             let mut local_opt = ::database::CACHE.read().unwrap().get_local(node_id, tag);
             // NOTE: This only fires once (ideally)
             if local_opt.is_none() {
