@@ -223,7 +223,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
 			match fcn.node
 			{
 			hir::ExprPath(ref qp, ..) =>
-				match self.cx.tables.qpath_def(qp, fcn.id)
+				match self.cx.tables.qpath_def(qp, fcn.hir_id)
 				{
 				def::Def::Fn(did) | def::Def::Method(did) =>
 					// Check for a safety tag
@@ -245,7 +245,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
         
         // Method call expressions - get the relevant method
         hir::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
-			match self.cx.tables.type_dependent_defs.get(&ex.id)
+			match self.cx.tables.type_dependent_defs().get(ex.hir_id)
 			{
 			Some(callee) => {
                 let id = callee.def_id();
