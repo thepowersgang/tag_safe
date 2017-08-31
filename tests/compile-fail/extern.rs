@@ -2,6 +2,7 @@
 #![plugin(tag_safe)]
 
 // Path is relative to rustc invocation directory - package root in this case
+#[allow(unused_extern_crates)]
 #[tagged_safe(print="tests/compile-fail/libstd_foo.txt")]
 extern crate std as _std;
 
