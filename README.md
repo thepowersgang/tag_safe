@@ -7,8 +7,8 @@ within an IRQ handler, and handle the case where they may interrupt themselves).
 
 # Detailed #
 If a function is annotated with `#[req_safe(ident)]` (where `ident` can be anything, and defines the type of safety)
-this linter will check that call functions called by that function are either annotated with the same annotation or
-`#[is_safe(ident)]`, OR they do no call functions with the reverse `#[is_unsafe(ident)]` annotation.
+this linter will check that all functions called by that function are either annotated with the same annotation or
+`#[is_safe(ident)]`, OR they do not call functions with the reverse `#[is_unsafe(ident)]` annotation.
 
 By default this lint is a warning, if you would like to make it a hard error add `#[deny(not_tagged_safe)]`
 
