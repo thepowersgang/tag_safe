@@ -284,7 +284,7 @@ fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl It
         .filter_map(|tag_meta|
             if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
                 if let MetaItemKind::Word = ptr.node {
-                    Some(ptr.name)
+                    Some(ptr.ident.name)
                 }
                 else {
                     warn!("");

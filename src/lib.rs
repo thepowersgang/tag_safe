@@ -21,7 +21,6 @@
 #![crate_name="tag_safe"]
 #![crate_type="dylib"]
 #![feature(plugin_registrar, rustc_private)]
-#![feature(conservative_impl_trait)]
 #![feature(macro_vis_matcher)]  // needed for some random macro?
 
 #[macro_use]

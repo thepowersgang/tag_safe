@@ -36,7 +36,7 @@ impl MultiItemDecorator for HandlerTaggedSafe
 		for (tag_name, filename) in get_inner_items(meta_item, "tagged_safe")
 			.filter_map(|ptr| 
 				if let MetaItemKind::NameValue( ast::Lit { node: LitKind::Str(ref value, _), .. } ) = ptr.node {
-					Some( (ptr.name, value) )
+					Some( (ptr.ident.name, value) )
 				}
 				else {
 					warn!("");
@@ -85,6 +85,15 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 			warn!("#[{}] on non-fn - {:?}", name, i);
 			None
 			},
+		},
+	Annotatable::ForeignItem(_) => {
+		None
+		},
+	Annotatable::Stmt(_) => {
+		None
+		},
+	Annotatable::Expr(_) => {
+		None
 		},
 	}
 }
@@ -166,7 +175,7 @@ fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a s
 	get_inner_items(meta_item, attr_name)
 		.filter_map(|ptr|
 			if let MetaItemKind::Word = ptr.node {
-				Some(ptr.name)
+				Some(ptr.ident.name)
 			}
 			else {
 				warn!("");
