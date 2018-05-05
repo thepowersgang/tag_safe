@@ -267,7 +267,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
 
 fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
     meta_items.iter()
-        .filter(move |attr| attr.name().map(move |n| n == attr_name).unwrap_or(false))
+        .filter(move |attr| attr.name() == attr_name)
         .flat_map(|attr|
 			if let Some(v) = attr.meta() {
 				if let MetaItemKind::List(v) = v.node {
@@ -284,7 +284,7 @@ fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl It
         .filter_map(|tag_meta|
             if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
                 if let MetaItemKind::Word = ptr.node {
-                    Some(ptr.ident.name)
+                    Some(ptr.ident.segments[0].ident.name)
                 }
                 else {
                     warn!("");
