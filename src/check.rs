@@ -100,7 +100,7 @@ impl Pass
         {
         hir::map::NodeItem(i) =>
             match i.node {
-            hir::ItemFn(_, _, _, _, _, ref body) => {
+            hir::ItemFn(_, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
                 let mut is_safe = true;
                 {
