@@ -6,7 +6,7 @@ use rustc::hir::def;
 use syntax::codemap::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc::ty::{self, TyCtxt};
-use rustc::hir;
+use rustc::hir::{self, ExprKind, ItemKind};
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
 
@@ -100,7 +100,7 @@ impl Pass
         {
         hir::map::NodeItem(i) =>
             match i.node {
-            hir::ItemFn(_, _, _, ref body) => {
+            ItemKind::Fn(_, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
                 let mut is_safe = true;
                 {
@@ -219,10 +219,10 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
         match ex.node
         {
         // Call expressions - check that it's a path call
-        hir::ExprCall(ref fcn, ..) =>
+        ExprKind::Call(ref fcn, ..) =>
 			match fcn.node
 			{
-			hir::ExprPath(ref qp, ..) =>
+			ExprKind::Path(ref qp, ..) =>
 				match self.cx.tables.qpath_def(qp, fcn.hir_id)
 				{
 				def::Def::Fn(did) | def::Def::Method(did) =>
@@ -244,7 +244,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
 			},
         
         // Method call expressions - get the relevant method
-        hir::ExprMethodCall(ref _id, ref _tys, ref _exprs) =>
+        ExprKind::MethodCall(ref _id, ref _tys, ref _exprs) =>
 			match self.cx.tables.type_dependent_defs().get(ex.hir_id)
 			{
 			Some(callee) => {
