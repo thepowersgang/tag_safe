@@ -21,7 +21,6 @@
 #![crate_name="tag_safe"]
 #![crate_type="dylib"]
 #![feature(plugin_registrar, rustc_private)]
-#![feature(macro_vis_matcher)]  // needed for some random macro?
 #![feature(macro_at_most_once_rep)] // also needed for a macro (lint_array)
 
 #[macro_use]
@@ -33,7 +32,6 @@ extern crate lazy_static;
 extern crate syntax;
 #[macro_use]
 extern crate rustc;
-#[macro_use]
 extern crate rustc_plugin;
 
 mod prescan;

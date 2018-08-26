@@ -66,11 +66,11 @@ impl StaticCache
 			Tag(i)
 		}
 	}
-	pub fn get_tag_opt(&self, tag_name: &str) -> Option<Tag> {
-		self.known_tags.iter()
-			.position(|x| x == tag_name)
-			.map(|i| Tag(i))
-	}
+	//pub fn get_tag_opt(&self, tag_name: &str) -> Option<Tag> {
+	//	self.known_tags.iter()
+	//		.position(|x| x == tag_name)
+	//		.map(|i| Tag(i))
+	//}
 
 	pub fn mark(&mut self, id: ast::NodeId, tag: Tag, is_safe: bool) {
 		let tag_cache = self.this_crate.map.entry(tag.0).or_insert_with(|| Default::default());

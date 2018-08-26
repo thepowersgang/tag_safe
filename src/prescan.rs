@@ -1,8 +1,8 @@
 use syntax::ast;
 use syntax::ast::{ItemKind,TraitItemKind,ImplItemKind};
 use syntax::ast::{MetaItemKind,NestedMetaItemKind,LitKind};
-use syntax::codemap::Span;
-use syntax::ext::base::{MultiItemModifier,MultiItemDecorator};
+use syntax::source_map::Span;
+use syntax::ext::base::{MultiItemDecorator};
 use syntax::ext::base::{ExtCtxt,Annotatable};
 
 

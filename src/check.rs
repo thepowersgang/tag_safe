@@ -3,9 +3,9 @@ use syntax::ast;
 use syntax::ast::{MetaItemKind,NestedMetaItemKind};
 use rustc::hir::def_id::DefId;
 use rustc::hir::def;
-use syntax::codemap::Span;
+use syntax::source_map::Span;
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
-use rustc::ty::{self, TyCtxt};
+use rustc::ty::{TyCtxt};
 use rustc::hir::{self, ExprKind, ItemKind};
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
