@@ -98,7 +98,7 @@ impl Pass
         // and apply a visitor to all 
         match cx.tcx.hir.get(node_id)
         {
-        hir::map::NodeItem(i) =>
+        hir::Node::Item(i) =>
             match i.node {
             ItemKind::Fn(_, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
@@ -117,7 +117,7 @@ impl Pass
                 true
                 },
             },
-        hir::map::NodeImplItem(i) =>
+        hir::Node::ImplItem(i) =>
             match i.node {
             hir::ImplItemKind::Method(_, ref body) => {
                 
