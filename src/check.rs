@@ -17,6 +17,9 @@ pub struct Pass
 }
 
 impl LintPass for Pass {
+	fn name(&self) -> &'static str {
+		"tag_safe"
+	}
     fn get_lints(&self) -> LintArray {
         lint_array!(NOT_TAGGED_SAFE)
     }
