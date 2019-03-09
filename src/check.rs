@@ -26,8 +26,9 @@ impl LintPass for Pass {
 }
 
 impl<'a,'b> LateLintPass<'a,'b> for Pass {
-    fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Body, _: Span, id: ast::NodeId) {
-        let attrs = cx.tcx.hir().attrs(id);
+    fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Body, _: Span, id: hir::HirId) {
+        let attrs = cx.tcx.hir().attrs_by_hir_id(id);
+		let node_id = cx.tcx.hir().hir_to_node_id(id);
 
         // If this function is tagged with a particular safety, store
         {
@@ -35,12 +36,12 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
             for tag_name in get_tags(attrs, "is_safe")
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
-                lh.mark(id, tag,  true);
+                lh.mark(node_id, tag,  true);
             }
             for tag_name in get_tags(attrs, "not_safe")
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
-                lh.mark(id, tag,  false);
+                lh.mark(node_id, tag,  false);
             }
         }
         
@@ -51,7 +52,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
                 let mut lh = ::database::CACHE.write().unwrap();
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
                 //let tag = if let Some(v) = lh.get_tag_opt(&tag_name.as_str()) { v } else { error!("Tag {} unknown", ty_name);  continue; };
-                lh.mark(id, tag,  true);
+                lh.mark(node_id, tag,  true);
                 tag
                 };
 
