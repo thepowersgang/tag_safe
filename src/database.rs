@@ -134,7 +134,7 @@ impl StaticCache
 		{
 		hash_map::Entry::Occupied(e) => Some(*e.get()),
 		hash_map::Entry::Vacant(e) => {
-			let name = tcx.item_path_str(def_id::DefId{krate:krate,index:index});
+			let name = tcx.def_path_str(def_id::DefId{krate:krate,index:index});
 			debug!("Look up {}", name);
 			if cache.name_set.contains( &name ) {
 				Some(*e.insert( !cache.default ))
