@@ -1,6 +1,6 @@
 use syntax::ast;
-use syntax::ast::{ItemKind,TraitItemKind,ImplItemKind};
-use syntax::ast::{MetaItemKind,NestedMetaItemKind,LitKind};
+use syntax::ast::{ItemKind,TraitItemKind,NestedMetaItem,ImplItemKind};
+use syntax::ast::{MetaItemKind,LitKind};
 use syntax::source_map::Span;
 use syntax::ext::base::{MultiItemDecorator};
 use syntax::ext::base::{ExtCtxt,Annotatable};
@@ -36,7 +36,7 @@ impl MultiItemDecorator for HandlerTaggedSafe
 		for (tag_name, filename) in get_inner_items(meta_item, "tagged_safe")
 			.filter_map(|ptr| 
 				if let MetaItemKind::NameValue( ast::Lit { node: LitKind::Str(ref value, _), .. } ) = ptr.node {
-					Some( (ptr.ident.segments[0].ident.name, value) )
+					Some( (ptr.ident().unwrap().name, value) )
 				}
 				else {
 					warn!("");
@@ -161,7 +161,7 @@ fn get_inner_items<'a>(meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl
 			[].iter()
 		};
 	it.filter_map(|tag_meta|
-		if let NestedMetaItemKind::MetaItem(ref ptr) = tag_meta.node {
+		if let &NestedMetaItem::MetaItem(ref ptr) = tag_meta {
 			Some(ptr)
 		}
 		else {
@@ -174,12 +174,13 @@ fn get_inner_items<'a>(meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl
 fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
 	get_inner_items(meta_item, attr_name)
 		.filter_map(|ptr|
-			if let MetaItemKind::Word = ptr.node {
-				Some(ptr.ident.segments[0].ident.name)
-			}
-			else {
+			match (&ptr.node, ptr.ident())
+			{
+			(&MetaItemKind::Word, Some(i)) => Some(i.name),
+			_ => {
 				warn!("");
 				None
+				}
 			}
 			)
 }
