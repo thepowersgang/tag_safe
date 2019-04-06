@@ -17,4 +17,4 @@ lazy_static = "0.2.2"
 log = "0.3"
 
 [dev-dependencies]
-compiletest_rs = "0.3"
+compiletest_rs = { default-features = false, version = "*", features = ["stable"] }
