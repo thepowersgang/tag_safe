@@ -227,9 +227,9 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
 			match fcn.node
 			{
 			ExprKind::Path(ref qp, ..) =>
-				match self.cx.tables.qpath_def(qp, fcn.hir_id)
+				match self.cx.tables.qpath_res(qp, fcn.hir_id)
 				{
-				def::Def::Fn(did) | def::Def::Method(did) =>
+				def::Res::Def(def::DefKind::Fn, did) | def::Res::Def(def::DefKind::Method, did) =>
 					// Check for a safety tag
 					if !self.pass.method_is_safe(self.cx, did, self.tag)
 					{
@@ -251,15 +251,15 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
         ExprKind::MethodCall(ref _id, ref _tys, ref _exprs) =>
 			match self.cx.tables.type_dependent_defs().get(ex.hir_id)
 			{
-			Some(callee) => {
-                let id = callee.def_id();
+			Some(Ok(callee)) => {
+                let id = callee.1;
                 
 				// Check for a safety tag
 				if !self.pass.method_is_safe(self.cx, id, self.tag) {
 					(self.cb)(&ex.span);
 				}
 				},
-			None => info!("ExprMethodCall with unknown callee"),
+			_ => info!("ExprMethodCall with unknown callee"),
 			},
         
         // Ignore any other type of node
