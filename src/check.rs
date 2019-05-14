@@ -3,17 +3,31 @@ use syntax::ast;
 use syntax::ast::{MetaItemKind,NestedMetaItem};
 use rustc::hir::def_id::DefId;
 use rustc::hir::def;
-use syntax::source_map::Span;
+use syntax::source_map::{Span, Symbol};
 use rustc::lint::{self, LintContext, LintPass, LateLintPass, LintArray};
 use rustc::ty::{TyCtxt};
 use rustc::hir::{self, ExprKind, ItemKind};
 
 declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods within tagged function");
 
-#[derive(Default)]
 pub struct Pass
 {
     visit_stack: Vec<ast::NodeId>,
+	pub sym_issafe: Symbol,
+	pub sym_notsafe: Symbol,
+	pub sym_reqsafe: Symbol,
+}
+impl Pass
+{
+	pub fn new() -> Self
+	{
+		Pass {
+			visit_stack: Vec::new(),
+			sym_issafe: Symbol::intern("is_safe"),
+			sym_notsafe: Symbol::intern("not_safe"),
+			sym_reqsafe: Symbol::intern("req_safe"),
+			}
+	}
 }
 
 impl LintPass for Pass {
@@ -33,12 +47,12 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
         // If this function is tagged with a particular safety, store
         {
             let mut lh = ::database::CACHE.write().unwrap();
-            for tag_name in get_tags(attrs, "is_safe")
+            for tag_name in get_tags(attrs, self.sym_issafe.clone())
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
                 lh.mark(node_id, tag,  true);
             }
-            for tag_name in get_tags(attrs, "not_safe")
+            for tag_name in get_tags(attrs, self.sym_notsafe.clone())
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
                 lh.mark(node_id, tag,  false);
@@ -46,7 +60,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
         }
         
         // For each required safety, check
-        for tag_name in get_tags(attrs, "req_safe")
+        for tag_name in get_tags(attrs, self.sym_reqsafe.clone())
         {
             let ty_tag = {
                 let mut lh = ::database::CACHE.write().unwrap();
@@ -81,13 +95,13 @@ impl Pass
         debug!("Filling cache for node {:?}", node_id);
         let attrs = tcx.hir().attrs(node_id);
         let mut lh = ::database::CACHE.write().unwrap();
-        for tag_name in Iterator::chain( get_tags(attrs, "is_safe"), get_tags(attrs, "req_safe") )
+        for tag_name in Iterator::chain( get_tags(attrs, self.sym_issafe.clone()), get_tags(attrs, self.sym_reqsafe.clone()) )
         {
             debug!("#[is_safe/req_safe] {} - {}", tag_name, node_id);
             let tag = lh.get_tag_or_add(&tag_name.as_str());
             lh.mark(node_id, tag,  true);
         }
-        for tag_name in get_tags(attrs, "not_safe")
+        for tag_name in get_tags(attrs, self.sym_notsafe.clone())
         {
             debug!("#[not_safe] {} - {}", tag_name, node_id);
             let tag = lh.get_tag_or_add(&tag_name.as_str());
@@ -269,7 +283,7 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
     }
 }
 
-fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
+fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: Symbol) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
     meta_items.iter()
         .filter(move |attr| attr.path == attr_name)
         .flat_map(|attr|

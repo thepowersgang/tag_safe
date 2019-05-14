@@ -48,11 +48,12 @@ pub fn plugin_registrar(reg: &mut ::rustc_plugin::Registry) {
     //reg.register_syntax_extension(intern("not_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerNotSafe)) );
     //reg.register_syntax_extension(intern("req_safe"), SyntaxExtension::MultiModifier(Box::new(prescan::HandlerReqSafe)) );
 
-    reg.register_late_lint_pass( Box::new(check::Pass::default()) );
+    let pass = Box::new(check::Pass::new());
 
-    reg.register_attribute(String::from("is_safe" ), AttributeType::Whitelisted);
-    reg.register_attribute(String::from("not_safe"), AttributeType::Whitelisted);
-    reg.register_attribute(String::from("req_safe"), AttributeType::Whitelisted);
+    reg.register_attribute(pass.sym_issafe .clone(), AttributeType::Whitelisted);
+    reg.register_attribute(pass.sym_notsafe.clone(), AttributeType::Whitelisted);
+    reg.register_attribute(pass.sym_reqsafe.clone(), AttributeType::Whitelisted);
+    reg.register_late_lint_pass(pass);
 }
 
 // vim: ts=4 expandtab sw=4
