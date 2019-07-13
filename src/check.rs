@@ -12,7 +12,7 @@ declare_lint!(NOT_TAGGED_SAFE, Warn, "Warn about use of non-tagged methods withi
 
 pub struct Pass
 {
-    visit_stack: Vec<ast::NodeId>,
+    visit_stack: Vec<hir::HirId>,
 	pub sym_issafe: Symbol,
 	pub sym_notsafe: Symbol,
 	pub sym_reqsafe: Symbol,
@@ -41,8 +41,7 @@ impl LintPass for Pass {
 
 impl<'a,'b> LateLintPass<'a,'b> for Pass {
     fn check_fn(&mut self, cx: &lint::LateContext, _kind: hir::intravisit::FnKind, _decl: &hir::FnDecl, body: &hir::Body, _: Span, id: hir::HirId) {
-        let attrs = cx.tcx.hir().attrs_by_hir_id(id);
-		let node_id = cx.tcx.hir().hir_to_node_id(id);
+        let attrs = cx.tcx.hir().attrs(id);
 
         // If this function is tagged with a particular safety, store
         {
@@ -50,12 +49,12 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
             for tag_name in get_tags(attrs, self.sym_issafe.clone())
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
-                lh.mark(node_id, tag,  true);
+                lh.mark(id, tag,  true);
             }
             for tag_name in get_tags(attrs, self.sym_notsafe.clone())
             {
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
-                lh.mark(node_id, tag,  false);
+                lh.mark(id, tag,  false);
             }
         }
         
@@ -66,7 +65,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
                 let mut lh = ::database::CACHE.write().unwrap();
                 let tag = lh.get_tag_or_add(&tag_name.as_str());
                 //let tag = if let Some(v) = lh.get_tag_opt(&tag_name.as_str()) { v } else { error!("Tag {} unknown", ty_name);  continue; };
-                lh.mark(node_id, tag,  true);
+                lh.mark(id, tag,  true);
                 tag
                 };
 
@@ -90,7 +89,7 @@ impl<'a,'b> LateLintPass<'a,'b> for Pass {
 
 impl Pass
 {
-    fn fill_cache_for(&mut self, tcx: &TyCtxt, node_id: ast::NodeId)
+    fn fill_cache_for(&mut self, tcx: &TyCtxt, node_id: hir::HirId)
     {
         debug!("Filling cache for node {:?}", node_id);
         let attrs = tcx.hir().attrs(node_id);
@@ -111,7 +110,7 @@ impl Pass
 
     /// Recursively check that the provided function is either safe or unsafe.
     // Used to avoid excessive annotating
-    fn recurse_fcn_body(&mut self, cx: &lint::LateContext, node_id: ast::NodeId, tag: ::database::Tag) -> bool
+    fn recurse_fcn_body(&mut self, cx: &lint::LateContext, node_id: hir::HirId, tag: ::database::Tag) -> bool
     {
         // and apply a visitor to all 
         match cx.tcx.hir().get(node_id)
@@ -171,8 +170,9 @@ impl Pass
     /// Locate a #[tag_safe(<name>)] attribute on the passed item
     pub fn method_is_safe(&mut self, cx: &lint::LateContext, id: DefId, tag: ::database::Tag) -> bool
     {
-        if ! id.is_local()
+        match cx.tcx.hir().as_local_hir_id(id)
         {
+        None => {
             // TODO: Get the entry from the crate cache
             if let Some(v) = ::database::CACHE.read().unwrap().get_extern(&cx.tcx,id.krate, id.index, tag) {
                 debug!("{:?} - {} (extern cached)", id, v);
@@ -182,10 +182,8 @@ impl Pass
                 debug!("{:?} - {} (extern assumed)", id, true);
                 true
             }
-        }
-        else
-        {
-            let node_id = cx.tcx.hir().as_local_node_id(id).expect("Unable to locate node");
+            },
+        Some(node_id) => {
             let mut local_opt = ::database::CACHE.read().unwrap().get_local(node_id, tag);
             // NOTE: This only fires once (ideally)
             if local_opt.is_none() {
@@ -212,6 +210,7 @@ impl Pass
                     ::database::CACHE.write().unwrap().mark(node_id, tag,  rv);
                     rv
                 }
+            }
             }
         }
     }

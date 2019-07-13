@@ -1,7 +1,7 @@
 
 use std::sync::RwLock;
 use std::collections::{HashMap,HashSet,hash_map};
-use syntax::ast;
+use rustc::hir;
 use rustc::hir::def_id;
 use rustc::ty::TyCtxt;
 
@@ -25,7 +25,7 @@ struct AnnotationCache
 struct TagAnnotationCache
 {
 	// functon -> state
-	map: HashMap<ast::NodeId, bool>,
+	map: HashMap<hir::HirId, bool>,
 }
 
 #[derive(Default)]
@@ -72,7 +72,7 @@ impl StaticCache
 	//		.map(|i| Tag(i))
 	//}
 
-	pub fn mark(&mut self, id: ast::NodeId, tag: Tag, is_safe: bool) {
+	pub fn mark(&mut self, id: hir::HirId, tag: Tag, is_safe: bool) {
 		let tag_cache = self.this_crate.map.entry(tag.0).or_insert_with(|| Default::default());
 		match tag_cache.map.entry(id)
 		{
@@ -114,7 +114,7 @@ impl StaticCache
 		Ok( () )
 	}
 
-	pub fn get_local(&self, id: ast::NodeId, tag: Tag) -> Option<bool> {
+	pub fn get_local(&self, id: hir::HirId, tag: Tag) -> Option<bool> {
 		self.this_crate.map.get(&tag.0)
 			.and_then(|tc| tc.map.get(&id))
 			.map(|&v| v)

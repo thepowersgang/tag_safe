@@ -2,7 +2,7 @@ use syntax::ast;
 use syntax::ast::{ItemKind,TraitItemKind,NestedMetaItem,ImplItemKind};
 use syntax::ast::{MetaItemKind,LitKind};
 use syntax::source_map::Span;
-use syntax::ext::base::{MultiItemDecorator};
+use syntax::ext::base::{MultiItemModifier};
 use syntax::ext::base::{ExtCtxt,Annotatable};
 
 
@@ -16,20 +16,20 @@ pub struct HandlerNotSafe;
 //pub struct HandlerReqSafe;
 
 
-impl MultiItemDecorator for HandlerTaggedSafe
+impl MultiItemModifier for HandlerTaggedSafe
 {
-	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
+	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: Annotatable) -> Vec<Annotatable> {
 
-		let crate_name = match *item
+		let crate_name = match item
 			{
 			//Annotatable::Item(box Item { node: ItemKind::ExternCrate(ref opt_name) }) => {
 			Annotatable::Item(ref i) =>
 				match i.node {
 				ItemKind::ExternCrate(None) => i.ident.name,
 				ItemKind::ExternCrate(Some(crate_name)) => crate_name,
-				_ => return ,
+				_ => return vec![item],
 				},
-			_ => return ,
+			_ => return vec![item],
 			};
 		let mut lh = ::database::CACHE.write().expect("Poisoned lock on tag_safe cache");
 
@@ -53,6 +53,7 @@ impl MultiItemDecorator for HandlerTaggedSafe
 				},
 			}
 		}
+		vec![item]
 	}
 }
 
@@ -98,13 +99,13 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 	}
 }
 
-impl MultiItemDecorator for HandlerIsSafe
+impl MultiItemModifier for HandlerIsSafe
 {
-	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
-		let node_id = match get_fn_node_id("is_safe", item)
+	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: Annotatable) -> Vec<Annotatable> {
+		let node_id = match get_fn_node_id("is_safe", &item)
 			{
 			Some(v) => v,
-			None => return,
+			None => return vec![item],
 			};
 		let mut lh = ::database::CACHE.write().expect("Poisoned lock on tag_safe cache");
 		for tag_name in get_tags(ecx, meta_item, "is_safe")
@@ -113,16 +114,17 @@ impl MultiItemDecorator for HandlerIsSafe
 			/*let tag = */lh.get_tag_or_add(&tag_name.as_str());
 			//lh.mark(node_id, tag, true);
 		}
+		vec![item]
 	}
 }
 
-impl MultiItemDecorator for HandlerNotSafe
+impl MultiItemModifier for HandlerNotSafe
 {
-	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
-		let node_id = match get_fn_node_id("not_safe", item)
+	fn expand(&self, ecx: &mut ExtCtxt, _span: Span, meta_item: &ast::MetaItem, item: Annotatable) -> Vec<Annotatable> {
+		let node_id = match get_fn_node_id("not_safe", &item)
 			{
 			Some(v) => v,
-			None => return,
+			None => return vec![item],
 			};
 		let mut lh = ::database::CACHE.write().expect("Poisoned lock on tag_safe cache");
 		for tag_name in get_tags(ecx, meta_item, "not_safe")
@@ -131,13 +133,14 @@ impl MultiItemDecorator for HandlerNotSafe
 			/*let tag = */lh.get_tag_or_add(&tag_name.as_str());
 			//lh.mark(node_id, tag, false);
 		}
+		vec![item]
 	}
 }
 
 //impl MultiItemDecorator for HandlerReqSafe
 //{
-//	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: &Annotatable, _push: &mut FnMut(Annotatable)) {
-//		let node_id = match get_fn_node_id("req_safe", item)
+//	fn expand(&self, ecx: &mut ExtCtxt, span: Span, meta_item: &ast::MetaItem, item: Annotatable) -> Vec<Annotatable> {
+//		let node_id = match get_fn_node_id("req_safe", &item)
 //			{
 //			Some(v) => v,
 //			None => return,
@@ -149,6 +152,7 @@ impl MultiItemDecorator for HandlerNotSafe
 //			let tag = lh.get_tag_or_add(tag_name);
 //			lh.mark(node_id, tag, true);
 //		}
+//		vec![item]
 //	}
 //}
 

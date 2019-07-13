@@ -40,15 +40,19 @@ mod database;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut ::rustc_plugin::Registry) {
     use syntax::feature_gate::AttributeType;
-    use syntax::ext::base::SyntaxExtension;
+    use syntax::ext::base::{SyntaxExtension,SyntaxExtensionKind};
+    use syntax::source_map::edition::Edition;
     use syntax::symbol::Symbol;
     
-    reg.register_syntax_extension(Symbol::intern("tagged_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerTaggedSafe)) );
+    reg.register_syntax_extension(Symbol::intern("tagged_safe"), {
+            let v = SyntaxExtension::default(SyntaxExtensionKind::LegacyAttr( Box::new(prescan::HandlerTaggedSafe) ), Edition::Edition2015);
+            v
+            });
+
+    let pass = Box::new(check::Pass::new());
     //reg.register_syntax_extension(intern("is_safe" ), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerIsSafe) ) );
     //reg.register_syntax_extension(intern("not_safe"), SyntaxExtension::MultiDecorator(Box::new(prescan::HandlerNotSafe)) );
     //reg.register_syntax_extension(intern("req_safe"), SyntaxExtension::MultiModifier(Box::new(prescan::HandlerReqSafe)) );
-
-    let pass = Box::new(check::Pass::new());
 
     reg.register_attribute(pass.sym_issafe .clone(), AttributeType::Whitelisted);
     reg.register_attribute(pass.sym_notsafe.clone(), AttributeType::Whitelisted);
