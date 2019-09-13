@@ -31,14 +31,14 @@ extern crate lazy_static;
 extern crate syntax;
 #[macro_use]
 extern crate rustc;
-extern crate rustc_plugin;
+extern crate rustc_driver;
 
 mod prescan;
 mod check;
 mod database;
 
 #[plugin_registrar]
-pub fn plugin_registrar(reg: &mut ::rustc_plugin::Registry) {
+pub fn plugin_registrar(reg: &mut ::rustc_driver::plugin::Registry) {
     use syntax::feature_gate::AttributeType;
     use syntax::ext::base::{SyntaxExtension,SyntaxExtensionKind};
     use syntax::source_map::edition::Edition;

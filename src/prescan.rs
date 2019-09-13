@@ -87,15 +87,17 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 			None
 			},
 		},
-	Annotatable::ForeignItem(_) => {
-		None
-		},
-	Annotatable::Stmt(_) => {
-		None
-		},
-	Annotatable::Expr(_) => {
-		None
-		},
+	Annotatable::ForeignItem(..)
+	| Annotatable::Stmt(..)
+	| Annotatable::Expr(..)
+	| Annotatable::Arm(..)
+	| Annotatable::Field(..)
+	| Annotatable::FieldPat(..)
+	| Annotatable::GenericParam(..)
+	| Annotatable::Param(..)
+	| Annotatable::StructField(..)
+	| Annotatable::Variant(..)
+		=> None,
 	}
 }
 
