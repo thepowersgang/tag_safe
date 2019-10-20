@@ -116,7 +116,8 @@ impl Pass
         match cx.tcx.hir().get(node_id)
         {
         hir::Node::Item(i) =>
-            match i.node {
+            match i.kind
+			{
             ItemKind::Fn(_, _, _, ref body) => {
                 // Enumerate this function's code, recursively checking for a call to an unsafe method
                 let mut is_safe = true;
@@ -135,7 +136,8 @@ impl Pass
                 },
             },
         hir::Node::ImplItem(i) =>
-            match i.node {
+            match i.kind
+			{
             hir::ImplItemKind::Method(_, ref body) => {
                 
                 let mut is_safe = true;
@@ -233,11 +235,11 @@ impl<'a, 'tcx: 'a, F: FnMut(&Span)> hir::intravisit::Visitor<'a> for Visitor<'a,
     // Locate function/method calls in a code block
     fn visit_expr(&mut self, ex: &'a hir::Expr) {
         debug!("visit node - {:?}", ex);
-        match ex.node
+        match ex.kind
         {
         // Call expressions - check that it's a path call
         ExprKind::Call(ref fcn, ..) =>
-			match fcn.node
+			match fcn.kind
 			{
 			ExprKind::Path(ref qp, ..) =>
 				match self.cx.tables.qpath_res(qp, fcn.hir_id)
@@ -287,7 +289,7 @@ fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: Symbol) -> impl Ite
         .filter(move |attr| attr.path == attr_name)
         .flat_map(|attr|
 			if let Some(v) = attr.meta() {
-				if let MetaItemKind::List(v) = v.node {
+				if let MetaItemKind::List(v) = v.kind {
 					v.into_iter()
 				}
 				else {
@@ -300,7 +302,7 @@ fn get_tags<'a>(meta_items: &'a [ast::Attribute], attr_name: Symbol) -> impl Ite
             )
         .filter_map(|tag_meta|
             if let NestedMetaItem::MetaItem(ref ptr) = tag_meta {
-				match (&ptr.node, ptr.ident())
+				match (&ptr.kind, ptr.ident())
 				{
 				(&MetaItemKind::Word, Some(i)) => Some(i.name),
 				_ => {

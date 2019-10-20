@@ -2,8 +2,8 @@ use syntax::ast;
 use syntax::ast::{ItemKind,TraitItemKind,NestedMetaItem,ImplItemKind};
 use syntax::ast::{MetaItemKind,LitKind};
 use syntax::source_map::Span;
-use syntax::ext::base::{MultiItemModifier};
-use syntax::ext::base::{ExtCtxt,Annotatable};
+use syntax_expand::base::{MultiItemModifier};
+use syntax_expand::base::{ExtCtxt,Annotatable};
 
 
 #[derive(Default)]
@@ -24,7 +24,8 @@ impl MultiItemModifier for HandlerTaggedSafe
 			{
 			//Annotatable::Item(box Item { node: ItemKind::ExternCrate(ref opt_name) }) => {
 			Annotatable::Item(ref i) =>
-				match i.node {
+				match i.kind
+				{
 				ItemKind::ExternCrate(None) => i.ident.name,
 				ItemKind::ExternCrate(Some(crate_name)) => crate_name,
 				_ => return vec![item],
@@ -35,7 +36,7 @@ impl MultiItemModifier for HandlerTaggedSafe
 
 		for (tag_name, filename) in get_inner_items(meta_item, "tagged_safe")
 			.filter_map(|ptr| 
-				if let MetaItemKind::NameValue( ast::Lit { node: LitKind::Str(ref value, _), .. } ) = ptr.node {
+				if let MetaItemKind::NameValue( ast::Lit { kind: LitKind::Str(ref value, _), .. } ) = ptr.kind {
 					Some( (ptr.ident().unwrap().name, value) )
 				}
 				else {
@@ -61,7 +62,7 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 	match *item
 	{
 	Annotatable::Item(ref i) =>
-		match i.node
+		match i.kind
 		{
 		ItemKind::Fn(..) => Some(i.id),
 		_ => {
@@ -70,7 +71,7 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 			},
 		},
 	Annotatable::TraitItem(ref i) =>
-		match i.node
+		match i.kind
 		{
 		TraitItemKind::Method(..) => Some(i.id),
 		_ => {
@@ -79,7 +80,7 @@ fn get_fn_node_id(name: &'static str, item: &Annotatable) -> Option<ast::NodeId>
 			},
 		},
 	Annotatable::ImplItem(ref i) =>
-		match i.node
+		match i.kind
 		{
 		ImplItemKind::Method(..) => Some(i.id),
 		_ => {
@@ -159,7 +160,7 @@ impl MultiItemModifier for HandlerNotSafe
 //}
 
 fn get_inner_items<'a>(meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=&'a ast::MetaItem>+'a {
-	let it = if let MetaItemKind::List(ref v) = meta_item.node {
+	let it = if let MetaItemKind::List(ref v) = meta_item.kind {
 			v.iter()
 		}
 		else {
@@ -180,7 +181,7 @@ fn get_inner_items<'a>(meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl
 fn get_tags<'a>(_cx: &'a ExtCtxt, meta_item: &'a ast::MetaItem, attr_name: &'a str) -> impl Iterator<Item=::syntax::symbol::Symbol>+'a {
 	get_inner_items(meta_item, attr_name)
 		.filter_map(|ptr|
-			match (&ptr.node, ptr.ident())
+			match (&ptr.kind, ptr.ident())
 			{
 			(&MetaItemKind::Word, Some(i)) => Some(i.name),
 			_ => {

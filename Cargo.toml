@@ -1,6 +1,6 @@
 [package]
 name = "tag_safe"
-description = "A rustc lint plugin to allow tagging of methods with arbitary safety flags"
+description = "(DEPRECATED rust-lang/rust#64675) A rustc lint plugin to allow tagging of methods with arbitary safety flags"
 version = "0.2.24"
 authors = ["John Hodge <mutabah@mutabah.net>"]
 repository = "http://github.com/thepowersgang/tag_safe/"

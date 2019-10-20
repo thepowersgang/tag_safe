@@ -29,6 +29,7 @@ extern crate log;
 extern crate lazy_static;
 
 extern crate syntax;
+extern crate syntax_expand;
 #[macro_use]
 extern crate rustc;
 extern crate rustc_driver;
@@ -40,7 +41,7 @@ mod database;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut ::rustc_driver::plugin::Registry) {
     use syntax::feature_gate::AttributeType;
-    use syntax::ext::base::{SyntaxExtension,SyntaxExtensionKind};
+    use syntax_expand::base::{SyntaxExtension,SyntaxExtensionKind};
     use syntax::source_map::edition::Edition;
     use syntax::symbol::Symbol;
     
